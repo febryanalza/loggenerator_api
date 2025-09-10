@@ -15,19 +15,19 @@ class RoleSeeder extends Seeder
         $roles = [
             [
                 'name' => 'Admin',
-                'description' => 'Administrator with full access',
+                'guard_name' => 'web',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
                 'name' => 'Manager',
-                'description' => 'Manager with limited administrative access',
+                'guard_name' => 'web',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
                 'name' => 'User',
-                'description' => 'Regular user with basic access',
+                'guard_name' => 'web',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

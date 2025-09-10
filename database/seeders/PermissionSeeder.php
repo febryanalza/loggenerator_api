@@ -16,25 +16,25 @@ class PermissionSeeder extends Seeder
             // User management permissions
             [
                 'name' => 'create_users',
-                'description' => 'Can create new users',
+                'guard_name' => 'web',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
                 'name' => 'read_users',
-                'description' => 'Can view user details',
+                'guard_name' => 'web',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
                 'name' => 'update_users',
-                'description' => 'Can update user details',
+                'guard_name' => 'web',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
                 'name' => 'delete_users',
-                'description' => 'Can delete users',
+                'guard_name' => 'web',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -42,25 +42,25 @@ class PermissionSeeder extends Seeder
             // Template management permissions
             [
                 'name' => 'create_templates',
-                'description' => 'Can create logbook templates',
+                'guard_name' => 'web',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
                 'name' => 'read_templates',
-                'description' => 'Can view logbook templates',
+                'guard_name' => 'web',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
                 'name' => 'update_templates',
-                'description' => 'Can update logbook templates',
+                'guard_name' => 'web',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
                 'name' => 'delete_templates',
-                'description' => 'Can delete logbook templates',
+                'guard_name' => 'web',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -68,25 +68,25 @@ class PermissionSeeder extends Seeder
             // Logbook data permissions
             [
                 'name' => 'create_logbook_data',
-                'description' => 'Can create logbook entries',
+                'guard_name' => 'web',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
                 'name' => 'read_logbook_data',
-                'description' => 'Can view logbook entries',
+                'guard_name' => 'web',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
                 'name' => 'update_logbook_data',
-                'description' => 'Can update logbook entries',
+                'guard_name' => 'web',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
                 'name' => 'delete_logbook_data',
-                'description' => 'Can delete logbook entries',
+                'guard_name' => 'web',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('notifications', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->unsignedBigInteger('user_id');
+            $table->uuid('user_id');
             $table->string('title', 255);
             $table->text('message')->nullable();
             $table->boolean('is_read')->default(false);

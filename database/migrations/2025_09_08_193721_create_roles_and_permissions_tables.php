@@ -16,7 +16,7 @@ return new class extends Migration
 
         // Role Permissions
         Schema::create('role_permissions', function (Blueprint $table) {
-            $table->increments('id');
+            $table->uuid('id')->primary();
             $table->unsignedBigInteger('role_id');
             $table->unsignedBigInteger('permission_id');
             $table->timestamp('created_at')->useCurrent();
@@ -28,7 +28,7 @@ return new class extends Migration
         // User Roles
         Schema::create('user_roles', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->unsignedBigInteger('user_id');
+            $table->uuid('user_id');
             $table->unsignedBigInteger('role_id');
             $table->timestamp('created_at')->useCurrent();
 
@@ -66,8 +66,8 @@ return new class extends Migration
         // User Data
         Schema::create('user_data', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->unsignedBigInteger('user_id');
-            $table->uuid('template_id')->nullable();
+            $table->uuid('user_id');
+            $table->char('template_id', 36)->nullable();
             $table->integer('role_data_id')->unsigned();
             $table->timestamp('created_at')->useCurrent();
 

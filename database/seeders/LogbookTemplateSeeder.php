@@ -20,21 +20,18 @@ class LogbookTemplateSeeder extends Seeder
             [
                 'id' => Uuid::uuid4()->toString(),
                 'name' => 'Daily Activity Log',
-                'user_id' => $admin->id,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
                 'id' => Uuid::uuid4()->toString(),
                 'name' => 'Equipment Inspection',
-                'user_id' => $admin->id,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
                 'id' => Uuid::uuid4()->toString(),
                 'name' => 'Incident Report',
-                'user_id' => $manager->id,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

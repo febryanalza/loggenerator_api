@@ -21,7 +21,7 @@ class LogbookFieldSeeder extends Seeder
         $fields[] = [
             'id' => Uuid::uuid4()->toString(),
             'name' => 'Activity Description',
-            'data_type' => '"teks"',
+            'data_type' => 'teks',
             'template_id' => $dailyActivityTemplate->id,
             'created_at' => now(),
             'updated_at' => now(),
@@ -30,7 +30,7 @@ class LogbookFieldSeeder extends Seeder
         $fields[] = [
             'id' => Uuid::uuid4()->toString(),
             'name' => 'Hours Spent',
-            'data_type' => '"angka"',
+            'data_type' => 'angka',
             'template_id' => $dailyActivityTemplate->id,
             'created_at' => now(),
             'updated_at' => now(),
@@ -39,7 +39,7 @@ class LogbookFieldSeeder extends Seeder
         $fields[] = [
             'id' => Uuid::uuid4()->toString(),
             'name' => 'Date Performed',
-            'data_type' => '"tanggal"',
+            'data_type' => 'tanggal',
             'template_id' => $dailyActivityTemplate->id,
             'created_at' => now(),
             'updated_at' => now(),
@@ -51,7 +51,7 @@ class LogbookFieldSeeder extends Seeder
         $fields[] = [
             'id' => Uuid::uuid4()->toString(),
             'name' => 'Equipment Name',
-            'data_type' => '"teks"',
+            'data_type' => 'teks',
             'template_id' => $inspectionTemplate->id,
             'created_at' => now(),
             'updated_at' => now(),
@@ -60,7 +60,7 @@ class LogbookFieldSeeder extends Seeder
         $fields[] = [
             'id' => Uuid::uuid4()->toString(),
             'name' => 'Inspection Date',
-            'data_type' => '"tanggal"',
+            'data_type' => 'tanggal',
             'template_id' => $inspectionTemplate->id,
             'created_at' => now(),
             'updated_at' => now(),
@@ -69,7 +69,7 @@ class LogbookFieldSeeder extends Seeder
         $fields[] = [
             'id' => Uuid::uuid4()->toString(),
             'name' => 'Condition Rating',
-            'data_type' => '"angka"',
+            'data_type' => 'angka',
             'template_id' => $inspectionTemplate->id,
             'created_at' => now(),
             'updated_at' => now(),
@@ -78,7 +78,7 @@ class LogbookFieldSeeder extends Seeder
         $fields[] = [
             'id' => Uuid::uuid4()->toString(),
             'name' => 'Photo Evidence',
-            'data_type' => '"gambar"',
+            'data_type' => 'gambar',
             'template_id' => $inspectionTemplate->id,
             'created_at' => now(),
             'updated_at' => now(),
@@ -90,7 +90,7 @@ class LogbookFieldSeeder extends Seeder
         $fields[] = [
             'id' => Uuid::uuid4()->toString(),
             'name' => 'Incident Title',
-            'data_type' => '"teks"',
+            'data_type' => 'teks',
             'template_id' => $incidentTemplate->id,
             'created_at' => now(),
             'updated_at' => now(),
@@ -99,7 +99,7 @@ class LogbookFieldSeeder extends Seeder
         $fields[] = [
             'id' => Uuid::uuid4()->toString(),
             'name' => 'Description',
-            'data_type' => '"teks"',
+            'data_type' => 'teks',
             'template_id' => $incidentTemplate->id,
             'created_at' => now(),
             'updated_at' => now(),
@@ -108,7 +108,7 @@ class LogbookFieldSeeder extends Seeder
         $fields[] = [
             'id' => Uuid::uuid4()->toString(),
             'name' => 'Incident Date',
-            'data_type' => '"tanggal"',
+            'data_type' => 'tanggal',
             'template_id' => $incidentTemplate->id,
             'created_at' => now(),
             'updated_at' => now(),
@@ -117,7 +117,7 @@ class LogbookFieldSeeder extends Seeder
         $fields[] = [
             'id' => Uuid::uuid4()->toString(),
             'name' => 'Incident Time',
-            'data_type' => '"jam"',
+            'data_type' => 'jam',
             'template_id' => $incidentTemplate->id,
             'created_at' => now(),
             'updated_at' => now(),
@@ -126,7 +126,7 @@ class LogbookFieldSeeder extends Seeder
         $fields[] = [
             'id' => Uuid::uuid4()->toString(),
             'name' => 'Severity Level',
-            'data_type' => '"angka"',
+            'data_type' => 'angka',
             'template_id' => $incidentTemplate->id,
             'created_at' => now(),
             'updated_at' => now(),

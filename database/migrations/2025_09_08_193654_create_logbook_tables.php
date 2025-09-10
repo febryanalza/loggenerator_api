@@ -13,7 +13,7 @@ return new class extends Migration
     {
         // Logbook Template
         Schema::create('logbook_template', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->char('id', 36)->primary();
             $table->string('name', 255);
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
@@ -21,10 +21,10 @@ return new class extends Migration
 
         // Logbook Fields
         Schema::create('logbook_fields', function (Blueprint $table) {
-            $table->uuid('id');
+            $table->char('id', 36)->primary();
             $table->string('name', 100);
             $table->enum('data_type', ['teks', 'angka', 'gambar', 'tanggal', 'jam']);
-            $table->uuid('template_id');
+            $table->char('template_id', 36);
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
 
@@ -34,9 +34,9 @@ return new class extends Migration
 
         // Logbook Data
         Schema::create('logbook_datas', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('template_id');
-            $table->unsignedBigInteger('writer_id');
+            $table->char('id', 36)->primary();
+            $table->char('template_id', 36);
+            $table->uuid('writer_id');
             $table->json('data');
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();

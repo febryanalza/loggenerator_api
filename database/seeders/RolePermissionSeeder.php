@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class RolePermissionSeeder extends Seeder
 {
@@ -20,6 +21,7 @@ class RolePermissionSeeder extends Seeder
         
         foreach ($allPermissions as $permission) {
             $rolePermissions[] = [
+                'id' => \Illuminate\Support\Str::uuid()->toString(),
                 'role_id' => $adminRole->id,
                 'permission_id' => $permission->id,
                 'created_at' => now(),
@@ -35,6 +37,7 @@ class RolePermissionSeeder extends Seeder
             $permission = DB::table('permissions')->where('name', $permName)->first();
             if ($permission) {
                 $rolePermissions[] = [
+                    'id' => \Illuminate\Support\Str::uuid()->toString(),
                     'role_id' => $managerRole->id,
                     'permission_id' => $permission->id,
                     'created_at' => now(),
@@ -50,6 +53,7 @@ class RolePermissionSeeder extends Seeder
             $permission = DB::table('permissions')->where('name', $permName)->first();
             if ($permission) {
                 $rolePermissions[] = [
+                    'id' => \Illuminate\Support\Str::uuid()->toString(),
                     'role_id' => $userRole->id,
                     'permission_id' => $permission->id,
                     'created_at' => now(),

@@ -18,9 +18,12 @@ class LogbookDataSeeder extends Seeder
         // Daily Activity Log data
         $dailyActivityTemplate = DB::table('logbook_template')->where('name', 'Daily Activity Log')->first();
         
+        $user = DB::table('users')->where('email', 'admin@example.com')->first();
+        
         $data[] = [
             'id' => Uuid::uuid4()->toString(),
             'template_id' => $dailyActivityTemplate->id,
+            'writer_id' => $user->id,
             'data' => json_encode([
                 'Activity Description' => 'Completed project documentation',
                 'Hours Spent' => 4,
@@ -33,6 +36,7 @@ class LogbookDataSeeder extends Seeder
         $data[] = [
             'id' => Uuid::uuid4()->toString(),
             'template_id' => $dailyActivityTemplate->id,
+            'writer_id' => $user->id,
             'data' => json_encode([
                 'Activity Description' => 'Team meeting and sprint planning',
                 'Hours Spent' => 2,
@@ -45,9 +49,12 @@ class LogbookDataSeeder extends Seeder
         // Equipment Inspection data
         $inspectionTemplate = DB::table('logbook_template')->where('name', 'Equipment Inspection')->first();
         
+        $manager = DB::table('users')->where('email', 'manager@example.com')->first();
+        
         $data[] = [
             'id' => Uuid::uuid4()->toString(),
             'template_id' => $inspectionTemplate->id,
+            'writer_id' => $manager->id,
             'data' => json_encode([
                 'Equipment Name' => 'Server Rack #3',
                 'Inspection Date' => '2025-08-28',
@@ -61,9 +68,12 @@ class LogbookDataSeeder extends Seeder
         // Incident Report data
         $incidentTemplate = DB::table('logbook_template')->where('name', 'Incident Report')->first();
         
+        $regularUser = DB::table('users')->where('email', 'user@example.com')->first();
+        
         $data[] = [
             'id' => Uuid::uuid4()->toString(),
             'template_id' => $incidentTemplate->id,
+            'writer_id' => $regularUser->id,
             'data' => json_encode([
                 'Incident Title' => 'Network Outage',
                 'Description' => 'Temporary network outage affecting the east wing offices',
