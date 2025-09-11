@@ -25,7 +25,7 @@ class LogbookTemplate extends Model
      */
     protected $fillable = [
         'name',
-        'user_id',
+        'description',
     ];
 
     /**
@@ -42,13 +42,5 @@ class LogbookTemplate extends Model
     public function data(): HasMany
     {
         return $this->hasMany(LogbookData::class, 'template_id');
-    }
-
-    /**
-     * Get the user that created this template.
-     */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
     }
 }

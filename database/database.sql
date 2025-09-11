@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 10, 2025 at 06:32 AM
+-- Generation Time: Sep 11, 2025 at 08:18 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -29,7 +29,7 @@ SET time_zone = "+00:00";
 
 CREATE TABLE `audit_logs` (
   `id` char(36) NOT NULL,
-  `user_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `user_id` char(36) DEFAULT NULL,
   `action` varchar(100) NOT NULL,
   `description` text DEFAULT NULL,
   `ip_address` varchar(45) DEFAULT NULL,
@@ -44,7 +44,7 @@ CREATE TABLE `audit_logs` (
 --
 
 CREATE TABLE `cache` (
-  `key` varchar(255) NOT NULL,
+  `key` varchar(191) NOT NULL,
   `value` mediumtext NOT NULL,
   `expiration` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -56,8 +56,8 @@ CREATE TABLE `cache` (
 --
 
 CREATE TABLE `cache_locks` (
-  `key` varchar(255) NOT NULL,
-  `owner` varchar(255) NOT NULL,
+  `key` varchar(191) NOT NULL,
+  `owner` varchar(191) NOT NULL,
   `expiration` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -82,7 +82,7 @@ CREATE TABLE `data_roles_permission` (
 
 CREATE TABLE `failed_jobs` (
   `id` bigint(20) UNSIGNED NOT NULL,
-  `uuid` varchar(255) NOT NULL,
+  `uuid` varchar(191) NOT NULL,
   `connection` text NOT NULL,
   `queue` text NOT NULL,
   `payload` longtext NOT NULL,
@@ -98,7 +98,7 @@ CREATE TABLE `failed_jobs` (
 
 CREATE TABLE `jobs` (
   `id` bigint(20) UNSIGNED NOT NULL,
-  `queue` varchar(255) NOT NULL,
+  `queue` varchar(191) NOT NULL,
   `payload` longtext NOT NULL,
   `attempts` tinyint(3) UNSIGNED NOT NULL,
   `reserved_at` int(10) UNSIGNED DEFAULT NULL,
@@ -113,8 +113,8 @@ CREATE TABLE `jobs` (
 --
 
 CREATE TABLE `job_batches` (
-  `id` varchar(255) NOT NULL,
-  `name` varchar(255) NOT NULL,
+  `id` varchar(191) NOT NULL,
+  `name` varchar(191) NOT NULL,
   `total_jobs` int(11) NOT NULL,
   `pending_jobs` int(11) NOT NULL,
   `failed_jobs` int(11) NOT NULL,
@@ -134,7 +134,7 @@ CREATE TABLE `job_batches` (
 CREATE TABLE `logbook_datas` (
   `id` char(36) NOT NULL,
   `template_id` char(36) NOT NULL,
-  `writer_id` bigint(20) UNSIGNED NOT NULL,
+  `writer_id` char(36) NOT NULL,
   `data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`data`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -176,7 +176,7 @@ CREATE TABLE `logbook_template` (
 
 CREATE TABLE `migrations` (
   `id` int(10) UNSIGNED NOT NULL,
-  `migration` varchar(255) NOT NULL,
+  `migration` varchar(191) NOT NULL,
   `batch` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -188,7 +188,7 @@ CREATE TABLE `migrations` (
 
 CREATE TABLE `model_has_permissions` (
   `permission_id` bigint(20) UNSIGNED NOT NULL,
-  `model_type` varchar(255) NOT NULL,
+  `model_type` varchar(191) NOT NULL,
   `model_id` bigint(20) UNSIGNED NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -200,7 +200,7 @@ CREATE TABLE `model_has_permissions` (
 
 CREATE TABLE `model_has_roles` (
   `role_id` bigint(20) UNSIGNED NOT NULL,
-  `model_type` varchar(255) NOT NULL,
+  `model_type` varchar(191) NOT NULL,
   `model_id` bigint(20) UNSIGNED NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -212,7 +212,7 @@ CREATE TABLE `model_has_roles` (
 
 CREATE TABLE `notifications` (
   `id` char(36) NOT NULL,
-  `user_id` bigint(20) UNSIGNED NOT NULL,
+  `user_id` char(36) NOT NULL,
   `title` varchar(255) NOT NULL,
   `message` text DEFAULT NULL,
   `is_read` tinyint(1) NOT NULL DEFAULT 0,
@@ -226,8 +226,8 @@ CREATE TABLE `notifications` (
 --
 
 CREATE TABLE `password_reset_tokens` (
-  `email` varchar(255) NOT NULL,
-  `token` varchar(255) NOT NULL,
+  `email` varchar(191) NOT NULL,
+  `token` varchar(191) NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -239,8 +239,8 @@ CREATE TABLE `password_reset_tokens` (
 
 CREATE TABLE `permissions` (
   `id` bigint(20) UNSIGNED NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `guard_name` varchar(255) NOT NULL,
+  `name` varchar(191) NOT NULL,
+  `guard_name` varchar(191) NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -265,10 +265,10 @@ CREATE TABLE `permission_in_data` (
 --
 
 CREATE TABLE `personal_access_tokens` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `tokenable_type` varchar(255) NOT NULL,
-  `tokenable_id` bigint(20) UNSIGNED NOT NULL,
-  `name` varchar(255) NOT NULL,
+  `id` char(36) NOT NULL,
+  `tokenable_type` varchar(191) NOT NULL,
+  `tokenable_id` char(36) NOT NULL,
+  `name` varchar(191) NOT NULL,
   `token` varchar(64) NOT NULL,
   `abilities` text DEFAULT NULL,
   `last_used_at` timestamp NULL DEFAULT NULL,
@@ -285,8 +285,8 @@ CREATE TABLE `personal_access_tokens` (
 
 CREATE TABLE `roles` (
   `id` bigint(20) UNSIGNED NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `guard_name` varchar(255) NOT NULL,
+  `name` varchar(191) NOT NULL,
+  `guard_name` varchar(191) NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -322,7 +322,7 @@ CREATE TABLE `role_has_permissions` (
 --
 
 CREATE TABLE `role_permissions` (
-  `id` int(10) UNSIGNED NOT NULL,
+  `id` char(36) NOT NULL,
   `role_id` bigint(20) UNSIGNED NOT NULL,
   `permission_id` bigint(20) UNSIGNED NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
@@ -335,7 +335,7 @@ CREATE TABLE `role_permissions` (
 --
 
 CREATE TABLE `sessions` (
-  `id` varchar(255) NOT NULL,
+  `id` varchar(191) NOT NULL,
   `user_id` bigint(20) UNSIGNED DEFAULT NULL,
   `ip_address` varchar(45) DEFAULT NULL,
   `user_agent` text DEFAULT NULL,
@@ -350,7 +350,7 @@ CREATE TABLE `sessions` (
 --
 
 CREATE TABLE `users` (
-  `id` bigint(20) UNSIGNED NOT NULL,
+  `id` char(36) NOT NULL,
   `name` varchar(100) NOT NULL,
   `email` varchar(150) NOT NULL,
   `email_verified_at` timestamp NULL DEFAULT NULL,
@@ -364,6 +364,17 @@ CREATE TABLE `users` (
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Triggers `users`
+--
+DELIMITER $$
+CREATE TRIGGER `after_user_insert` AFTER INSERT ON `users` FOR EACH ROW BEGIN
+                INSERT INTO user_roles (id, user_id, role_id, created_at)
+                VALUES (UUID(), NEW.id, 3, NOW());
+            END
+$$
+DELIMITER ;
+
 -- --------------------------------------------------------
 
 --
@@ -372,7 +383,7 @@ CREATE TABLE `users` (
 
 CREATE TABLE `user_data` (
   `id` char(36) NOT NULL,
-  `user_id` bigint(20) UNSIGNED NOT NULL,
+  `user_id` char(36) NOT NULL,
   `template_id` char(36) DEFAULT NULL,
   `role_data_id` int(10) UNSIGNED NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
@@ -386,7 +397,7 @@ CREATE TABLE `user_data` (
 
 CREATE TABLE `user_roles` (
   `id` char(36) NOT NULL,
-  `user_id` bigint(20) UNSIGNED NOT NULL,
+  `user_id` char(36) NOT NULL,
   `role_id` bigint(20) UNSIGNED NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -456,6 +467,7 @@ ALTER TABLE `logbook_datas`
 -- Indexes for table `logbook_fields`
 --
 ALTER TABLE `logbook_fields`
+  ADD PRIMARY KEY (`id`),
   ADD KEY `logbook_fields_template_id_foreign` (`template_id`),
   ADD KEY `logbook_fields_id_template_id_index` (`id`,`template_id`);
 
@@ -622,12 +634,6 @@ ALTER TABLE `permission_in_data`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `personal_access_tokens`
---
-ALTER TABLE `personal_access_tokens`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
 -- AUTO_INCREMENT for table `roles`
 --
 ALTER TABLE `roles`
@@ -638,18 +644,6 @@ ALTER TABLE `roles`
 --
 ALTER TABLE `roles_in_data`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `role_permissions`
---
-ALTER TABLE `role_permissions`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `users`
---
-ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables

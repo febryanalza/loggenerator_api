@@ -24,6 +24,7 @@ class LogbookData extends Model
      */
     protected $fillable = [
         'template_id',
+        'writer_id',
         'data',
     ];
 
@@ -42,5 +43,13 @@ class LogbookData extends Model
     public function template(): BelongsTo
     {
         return $this->belongsTo(LogbookTemplate::class, 'template_id');
+    }
+
+    /**
+     * Get the user who wrote this logbook entry.
+     */
+    public function writer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'writer_id');
     }
 }

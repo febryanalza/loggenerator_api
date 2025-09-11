@@ -22,19 +22,8 @@ class LogbookFieldController extends Controller
     public function store(StoreLogbookFieldRequest $request)
     {
         try {
-            // Check if user has permission to modify the template
+            // Check if template exists
             $template = LogbookTemplate::findOrFail($request->template_id);
-            
-            // Only template owner or admin can add fields
-            $user = Auth::user();
-            $isAdmin = $user->hasRole('Admin');
-            
-            if (!$isAdmin && $template->user_id !== $user->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You do not have permission to modify this template'
-                ], 403);
-            }
             
             // Create the field
             $field = new LogbookField();
@@ -91,19 +80,8 @@ class LogbookFieldController extends Controller
         }
 
         try {
-            // Check if user has permission to modify the template
+            // Check if template exists
             $template = LogbookTemplate::findOrFail($request->template_id);
-            
-            // Only template owner or admin can add fields
-            $user = Auth::user();
-            $isAdmin = $user->hasRole('Admin');
-            
-            if (!$isAdmin && $template->user_id !== $user->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You do not have permission to modify this template'
-                ], 403);
-            }
             
             // Create fields
             $createdFields = [];
@@ -135,6 +113,119 @@ class LogbookFieldController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create fields',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get fields for a specific template.
+     *
+     * @param  string  $templateId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getFieldsByTemplate($templateId)
+    {
+        try {
+            $template = LogbookTemplate::with('fields')->findOrFail($templateId);
+            
+            return response()->json([
+                'success' => true,
+                'data' => LogbookFieldResource::collection($template->fields)
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch fields',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update the specified field.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  string  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function update(Request $request, $id)
+    {
+        // Validate the request
+        $validator = validator($request->all(), [
+            'name' => 'required|string|max:100',
+            'data_type' => 'required|in:"teks","angka","gambar","tanggal","jam"',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation Error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $field = LogbookField::findOrFail($id);
+            
+            $field->name = $request->name;
+            $field->data_type = $request->data_type;
+            $field->save();
+            
+            // Create audit log
+            AuditLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'UPDATE_FIELD',
+                'description' => 'Updated field "' . $field->name . '"',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Field updated successfully',
+                'data' => new LogbookFieldResource($field)
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update field',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Remove the specified field.
+     *
+     * @param  string  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function destroy($id)
+    {
+        try {
+            $field = LogbookField::findOrFail($id);
+            $fieldName = $field->name;
+            
+            $field->delete();
+            
+            // Create audit log
+            AuditLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'DELETE_FIELD',
+                'description' => 'Deleted field "' . $fieldName . '"',
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Field deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete field',
                 'error' => $e->getMessage()
             ], 500);
         }
