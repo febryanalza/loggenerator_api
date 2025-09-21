@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Laravel\Sanctum\PersonalAccessToken as SanctumPersonalAccessToken;
-use Illuminate\Support\Str;
 
 class PersonalAccessToken extends SanctumPersonalAccessToken
 {
@@ -30,20 +29,4 @@ class PersonalAccessToken extends SanctumPersonalAccessToken
      * @var string
      */
     protected $primaryKey = 'id';
-    
-    /**
-     * The "booting" method of the model.
-     *
-     * @return void
-     */
-    protected static function boot()
-    {
-        parent::boot();
-        
-        static::creating(function ($model) {
-            if (empty($model->{$model->getKeyName()})) {
-                $model->{$model->getKeyName()} = (string) Str::uuid();
-            }
-        });
-    }
 }

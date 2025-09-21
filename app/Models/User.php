@@ -9,11 +9,12 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, HasUuids;
+    use HasApiTokens, HasFactory, Notifiable, HasUuids, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -66,15 +67,6 @@ class User extends Authenticatable
     ];
     
     /**
-     * Get the roles for this user.
-     */
-    public function roles(): BelongsToMany
-    {
-        return $this->belongsToMany(Role::class, 'user_roles', 'user_id', 'role_id')
-                    ->withTimestamps();
-    }
-    
-    /**
      * Get the templates created by this user.
      */
     public function templates(): HasMany
@@ -97,15 +89,74 @@ class User extends Authenticatable
     {
         return $this->hasMany(Notification::class);
     }
-    
+
     /**
-     * Check if the user has a specific role.
-     *
-     * @param string $roleName
-     * @return bool
+     * Get the logbook access records for this user.
      */
-    public function hasRole(string $roleName): bool
+    public function logbookAccess(): HasMany
     {
-        return $this->roles()->where('name', $roleName)->exists();
+        return $this->hasMany(UserLogbookAccess::class);
+    }
+
+    /**
+     * Check if the user has access to a specific logbook template.
+     */
+    public function hasLogbookAccess(string $templateId): bool
+    {
+        return $this->logbookAccess()
+            ->where('logbook_template_id', $templateId)
+            ->exists();
+    }
+
+    /**
+     * Get the user's role for a specific logbook template.
+     */
+    public function getLogbookRole(string $templateId): ?LogbookRole
+    {
+        $access = $this->logbookAccess()
+            ->where('logbook_template_id', $templateId)
+            ->with('logbookRole')
+            ->first();
+
+        return $access?->logbookRole;
+    }
+
+    /**
+     * Check if the user has a specific logbook permission for a template.
+     */
+    public function hasLogbookPermission(string $templateId, string $permissionName): bool
+    {
+        $access = $this->logbookAccess()
+            ->where('logbook_template_id', $templateId)
+            ->with('logbookRole.permissions')
+            ->first();
+
+        return $access?->hasLogbookPermission($permissionName) ?? false;
+    }
+
+    /**
+     * Assign a logbook role to the user for a specific template.
+     */
+    public function assignLogbookRole(string $templateId, string|int $roleId): UserLogbookAccess
+    {
+        if (is_string($roleId)) {
+            $role = LogbookRole::where('name', $roleId)->firstOrFail();
+            $roleId = $role->id;
+        }
+
+        return $this->logbookAccess()->updateOrCreate(
+            ['logbook_template_id' => $templateId],
+            ['logbook_role_id' => $roleId]
+        );
+    }
+
+    /**
+     * Remove logbook access for a specific template.
+     */
+    public function removeLogbookAccess(string $templateId): bool
+    {
+        return $this->logbookAccess()
+            ->where('logbook_template_id', $templateId)
+            ->delete() > 0;
     }
 }
