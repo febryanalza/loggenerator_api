@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class LogbookTemplate extends Model
 {
@@ -29,6 +32,36 @@ class LogbookTemplate extends Model
     ];
 
     /**
+     * The "booted" method of the model.
+     * This is the enterprise-standard way to handle automatic data insertion
+     */
+    protected static function booted(): void
+    {
+        // Automatically create user logbook access when template is created
+        static::created(function (LogbookTemplate $template) {
+            // Ensure we have an authenticated user
+            if (Auth::check()) {
+                // Use database transaction for data consistency
+                DB::transaction(function () use ($template) {
+                    // Get Owner role ID dynamically
+                    $ownerRoleId = DB::table('logbook_roles')->where('name', 'Owner')->value('id');
+                    
+                    if ($ownerRoleId) {
+                        DB::table('user_logbook_access')->insert([
+                            'id' => DB::raw('uuid_generate_v4()'),
+                            'user_id' => Auth::id(),
+                            'logbook_template_id' => $template->id,
+                            'logbook_role_id' => $ownerRoleId,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                });
+            }
+        });
+    }
+
+    /**
      * Get the fields for this template.
      */
     public function fields(): HasMany
@@ -42,5 +75,23 @@ class LogbookTemplate extends Model
     public function data(): HasMany
     {
         return $this->hasMany(LogbookData::class, 'template_id');
+    }
+
+    /**
+     * Get the user access entries for this template.
+     */
+    public function userAccess(): HasMany
+    {
+        return $this->hasMany(UserLogbookAccess::class, 'logbook_template_id');
+    }
+
+    /**
+     * Get users who have access to this template.
+     */
+    public function accessibleUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_logbook_access', 'logbook_template_id', 'user_id')
+                    ->withPivot(['logbook_role_id', 'created_at', 'updated_at'])
+                    ->withTimestamps();
     }
 }

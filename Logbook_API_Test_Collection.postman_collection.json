@@ -1,0 +1,329 @@
+{
+  "info": {
+    "name": "Logbook API Test Collection",
+    "description": "Testing logbook entries creation with various scenarios",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"admin@loggenerator.com\",\n    \"password\": \"password\",\n    \"device_name\": \"Postman Testing\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Get Templates",
+      "item": [
+        {
+          "name": "Get All Templates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/templates",
+              "host": ["{{base_url}}"],
+              "path": ["api", "templates"]
+            }
+          }
+        },
+        {
+          "name": "Get Daily Production Log Template",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/templates/172c162e-a9c4-41ad-ba3f-cef0e1878f20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "templates", "172c162e-a9c4-41ad-ba3f-cef0e1878f20"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Create Logbook Entries",
+      "item": [
+        {
+          "name": "Create Entry - Daily Production Log",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",  
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"template_id\": \"172c162e-a9c4-41ad-ba3f-cef0e1878f20\",\n    \"data\": {\n        \"shift\": \"Morning Shift\",\n        \"operator_name\": \"John Doe\",\n        \"production_line\": \"Line A\",\n        \"start_time\": \"08:00\",\n        \"end_time\": \"16:00\",\n        \"target_quantity\": \"1000\",\n        \"actual_quantity\": \"950\",\n        \"quality_check\": \"Pass\",\n        \"notes\": \"Production completed successfully with minor equipment maintenance delay\",\n        \"date\": \"2025-09-27\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/logbook-entries",
+              "host": ["{{base_url}}"],
+              "path": ["api", "logbook-entries"]
+            }
+          }
+        },
+        {
+          "name": "Create Entry - Quality Control Checklist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"template_id\": \"e6c756f1-ebae-4269-b42c-316335493789\",\n    \"data\": {\n        \"inspector_name\": \"Jane Smith\",\n        \"inspection_date\": \"2025-09-27\",\n        \"inspection_time\": \"14:30\",\n        \"product_batch\": \"BATCH-2025-0927-001\",\n        \"temperature\": \"25.5\",\n        \"humidity\": \"60\",\n        \"visual_inspection\": \"Approved\",\n        \"weight_check\": \"Within tolerance\",\n        \"color_check\": \"Consistent\",\n        \"packaging_check\": \"Sealed properly\",\n        \"overall_result\": \"Pass\",\n        \"remarks\": \"All parameters within specification limits\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/logbook-entries",
+              "host": ["{{base_url}}"],
+              "path": ["api", "logbook-entries"]
+            }
+          }
+        },
+        {
+          "name": "Create Entry - With Base64 Image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"template_id\": \"172c162e-a9c4-41ad-ba3f-cef0e1878f20\",\n    \"data\": {\n        \"shift\": \"Evening Shift\",\n        \"operator_name\": \"Mike Johnson\",\n        \"production_line\": \"Line B\",\n        \"start_time\": \"16:00\",\n        \"end_time\": \"00:00\",\n        \"target_quantity\": \"800\",\n        \"actual_quantity\": \"820\",\n        \"quality_check\": \"Pass\",\n        \"notes\": \"Production exceeded target by 2.5%\",\n        \"date\": \"2025-09-27\",\n        \"equipment_photo\": \"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/logbook-entries",
+              "host": ["{{base_url}}"],
+              "path": ["api", "logbook-entries"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Error Testing",
+      "item": [
+        {
+          "name": "Test Missing Template ID",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"data\": {\n        \"shift\": \"Morning Shift\",\n        \"operator_name\": \"John Doe\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/logbook-entries",
+              "host": ["{{base_url}}"],
+              "path": ["api", "logbook-entries"]
+            }
+          }
+        },
+        {
+          "name": "Test Invalid Template ID",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"template_id\": \"invalid-template-id-123\",\n    \"data\": {\n        \"shift\": \"Morning Shift\",\n        \"operator_name\": \"John Doe\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/logbook-entries",
+              "host": ["{{base_url}}"],
+              "path": ["api", "logbook-entries"]
+            }
+          }
+        },
+        {
+          "name": "Test Missing Required Fields",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"template_id\": \"172c162e-a9c4-41ad-ba3f-cef0e1878f20\",\n    \"data\": {\n        \"shift\": \"Morning Shift\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/logbook-entries",
+              "host": ["{{base_url}}"],
+              "path": ["api", "logbook-entries"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Get Entries",
+      "item": [
+        {
+          "name": "Get All Entries",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/logbook-entries",
+              "host": ["{{base_url}}"],
+              "path": ["api", "logbook-entries"]
+            }
+          }
+        },
+        {
+          "name": "Get Entries by Template",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/logbook-entries/template/172c162e-a9c4-41ad-ba3f-cef0e1878f20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "logbook-entries", "template", "172c162e-a9c4-41ad-ba3f-cef0e1878f20"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost/loggenerator_api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

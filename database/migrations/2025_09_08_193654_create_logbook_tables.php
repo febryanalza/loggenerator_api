@@ -17,7 +17,11 @@ return new class extends Migration
             $table->uuid('id')->primary()->default(DB::raw('uuid_generate_v4()'));
             $table->string('name', 255);
             $table->text('description')->nullable();
+            $table->uuid('created_by')->nullable(); // User who created the template
             $table->timestamps();
+            
+            $table->foreign('created_by')->references('id')->on('users')->onDelete('set null');
+            $table->index(['created_by']);
         });
 
         // Logbook Fields

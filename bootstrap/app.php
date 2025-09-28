@@ -12,7 +12,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Register custom middleware aliases
+        $middleware->alias([
+            'role' => \App\Http\Middleware\CheckRole::class,
+            'permission' => \App\Http\Middleware\CheckPermission::class,
+            'logbook.access' => \App\Http\Middleware\CheckLogbookAccess::class,
+            'template.owner' => \App\Http\Middleware\CheckTemplateOwnership::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

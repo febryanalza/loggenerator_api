@@ -19,7 +19,7 @@ return new class extends Migration
                 user_role_id BIGINT;
             BEGIN
                 -- Get the user role ID from Spatie roles table
-                SELECT id INTO user_role_id FROM roles WHERE name = 'user' AND guard_name = 'web' LIMIT 1;
+                SELECT id INTO user_role_id FROM roles WHERE name = 'User' AND guard_name = 'web' LIMIT 1;
                 
                 -- Insert into model_has_roles (Spatie table)
                 IF user_role_id IS NOT NULL THEN

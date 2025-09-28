@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreLogbookDataRequest;
 use App\Http\Resources\LogbookDataResource;
+use App\Http\Resources\LogbookDataSimpleResource;
+use App\Http\Resources\LogbookEntryMinimalResource;
 use App\Models\LogbookData;
 use App\Models\LogbookTemplate;
 use App\Models\AuditLog;
@@ -217,6 +219,168 @@ class LogbookDataController extends Controller
                 'message' => 'Logbook entry not found',
                 'error' => $e->getMessage()
             ], 404);
+        }
+    }
+
+    /**
+     * Fetch logbook entries by template ID.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  string  $templateId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function fetchByTemplate(Request $request, $templateId)
+    {
+        try {
+            // Verify template exists and get minimal template info
+            $template = LogbookTemplate::select('id', 'name', 'description')->findOrFail($templateId);
+            
+            // Check if user wants minimal response (for listing/browsing)
+            $minimal = $request->get('minimal', false);
+            
+            // Build optimized query
+            $query = LogbookData::select('id', 'writer_id', 'data', 'created_at', 'updated_at')
+                ->with(['writer:id,name,email'])
+                ->where('template_id', $templateId);
+            
+            // Filter by writer if provided
+            if ($request->has('writer_id')) {
+                $query->where('writer_id', $request->writer_id);
+            }
+            
+            // Filter by current user entries if requested
+            if ($request->has('my_entries') && $request->my_entries == true) {
+                $query->where('writer_id', Auth::id());
+            }
+            
+            // Date range filter
+            if ($request->has('start_date')) {
+                $query->whereDate('created_at', '>=', $request->start_date);
+            }
+            
+            if ($request->has('end_date')) {
+                $query->whereDate('created_at', '<=', $request->end_date);
+            }
+            
+            // Sorting
+            $sortBy = $request->get('sort_by', 'created_at');
+            $sortOrder = $request->get('sort_order', 'desc');
+            
+            if (in_array($sortBy, ['created_at', 'updated_at']) && in_array($sortOrder, ['asc', 'desc'])) {
+                $query->orderBy($sortBy, $sortOrder);
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+            
+            // Pagination
+            $perPage = $request->get('per_page', 15);
+            $logbookEntries = $query->paginate($perPage);
+            
+            // Choose appropriate resource based on minimal flag
+            $entriesData = $minimal 
+                ? LogbookEntryMinimalResource::collection($logbookEntries->items())
+                : LogbookDataSimpleResource::collection($logbookEntries->items());
+
+            return response()->json([
+                'success' => true,
+                'template' => [
+                    'id' => $template->id,
+                    'name' => $template->name,
+                    'description' => $template->description
+                ],
+                'entries' => $entriesData,
+                'pagination' => [
+                    'current_page' => $logbookEntries->currentPage(),
+                    'total_pages' => $logbookEntries->lastPage(),
+                    'per_page' => $logbookEntries->perPage(),
+                    'total' => $logbookEntries->total(),
+                    'has_more' => $logbookEntries->hasMorePages()
+                ]
+            ]);
+        } catch (\Exception $e) {
+            if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Template not found',
+                    'error' => 'The specified template does not exist'
+                ], 404);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch logbook entries for template',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get template summary with statistics.
+     *
+     * @param  string  $templateId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getTemplateSummary($templateId)
+    {
+        try {
+            $template = LogbookTemplate::select('id', 'name', 'description', 'created_at')
+                ->withCount('logbookData')
+                ->findOrFail($templateId);
+
+            // Get basic statistics
+            $stats = [
+                'total_entries' => $template->logbook_data_count,
+                'total_writers' => LogbookData::where('template_id', $templateId)
+                    ->distinct('writer_id')
+                    ->count('writer_id'),
+                'latest_entry' => LogbookData::where('template_id', $templateId)
+                    ->latest()
+                    ->value('created_at'),
+                'oldest_entry' => LogbookData::where('template_id', $templateId)
+                    ->oldest()
+                    ->value('created_at'),
+            ];
+
+            // Get top writers
+            $topWriters = LogbookData::select('writer_id')
+                ->selectRaw('COUNT(*) as entry_count')
+                ->with(['writer:id,name'])
+                ->where('template_id', $templateId)
+                ->groupBy('writer_id')
+                ->orderByDesc('entry_count')
+                ->limit(5)
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'writer_name' => $item->writer->name ?? 'Unknown',
+                        'entry_count' => $item->entry_count
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'template' => [
+                    'id' => $template->id,
+                    'name' => $template->name,
+                    'description' => $template->description,
+                    'created_at' => $template->created_at
+                ],
+                'statistics' => $stats,
+                'top_writers' => $topWriters
+            ]);
+        } catch (\Exception $e) {
+            if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Template not found'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch template summary',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 

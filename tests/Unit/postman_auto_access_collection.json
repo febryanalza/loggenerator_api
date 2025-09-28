@@ -1,0 +1,300 @@
+{
+  "info": {
+    "name": "Loggenerator API - Auto Access Testing",
+    "description": "Testing automatic user access creation when templates are created",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "template_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Get Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const responseJson = pm.response.json();",
+              "    if (responseJson.token) {",
+              "        pm.collectionVariables.set('token', responseJson.token);",
+              "        console.log('Token saved:', responseJson.token);",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/test-token",
+          "host": ["{{base_url}}"],
+          "path": ["test-token"]
+        }
+      }
+    },
+    {
+      "name": "2. Test Auto Template Creation",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Auto access creation working', function () {",
+              "    const responseJson = pm.response.json();",
+              "    pm.expect(responseJson.user_access_created).to.be.true;",
+              "    pm.expect(responseJson.message).to.include('SUCCESS');",
+              "});",
+              "",
+              "pm.test('Template and access details exist', function () {",
+              "    const responseJson = pm.response.json();",
+              "    pm.expect(responseJson).to.have.property('template_created');",
+              "    pm.expect(responseJson).to.have.property('access_details');",
+              "    pm.expect(responseJson.access_details).to.have.property('logbook_role_id');",
+              "    pm.expect(responseJson.access_details.logbook_role_id).to.equal(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/test-template-creation",
+          "host": ["{{base_url}}"],
+          "path": ["test-template-creation"]
+        }
+      }
+    },
+    {
+      "name": "3. Create Template via API",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Template created successfully', function () {",
+              "    const responseJson = pm.response.json();",
+              "    pm.expect(responseJson.success).to.be.true;",
+              "    pm.expect(responseJson.user_access_created).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has template data', function () {",
+              "    const responseJson = pm.response.json();",
+              "    pm.expect(responseJson.data).to.have.property('id');",
+              "    pm.expect(responseJson.data).to.have.property('name');",
+              "    ",
+              "    // Save template ID for next requests",
+              "    pm.collectionVariables.set('template_id', responseJson.data.id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\\n  \\\"name\\\": \\\"Postman Test Template {{$timestamp}}\\\",\\n  \\\"description\\\": \\\"Testing automatic user access creation\\\"\\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/templates",
+          "host": ["{{base_url}}"],
+          "path": ["api", "templates"]
+        }
+      }
+    },
+    {
+      "name": "4. Verify User Has Access",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('User can access created template', function () {",
+              "    const responseJson = pm.response.json();",
+              "    pm.expect(responseJson.success).to.be.true;",
+              "    pm.expect(responseJson.data).to.be.an('array');",
+              "    ",
+              "    // Check if our created template is in the list",
+              "    const templateId = pm.collectionVariables.get('template_id');",
+              "    if (templateId) {",
+              "        const foundTemplate = responseJson.data.find(t => t.id === templateId);",
+              "        pm.expect(foundTemplate).to.not.be.undefined;",
+              "        pm.expect(foundTemplate.role_name).to.exist;",
+              "        console.log('Template found with role:', foundTemplate.role_name);",
+              "    }",
+              "});",
+              "",
+              "pm.test('Templates have access info', function () {",
+              "    const responseJson = pm.response.json();",
+              "    if (responseJson.data.length > 0) {",
+              "        const template = responseJson.data[0];",
+              "        pm.expect(template).to.have.property('role_name');",
+              "        pm.expect(template).to.have.property('access_granted_at');",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/templates/user",
+          "host": ["{{base_url}}"],
+          "path": ["api", "templates", "user"]
+        }
+      }
+    },
+    {
+      "name": "5. Get Specific Template with Permissions",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Template has user access and permissions', function () {",
+              "    const responseJson = pm.response.json();",
+              "    pm.expect(responseJson.success).to.be.true;",
+              "    pm.expect(responseJson.data).to.have.property('role_name');",
+              "    pm.expect(responseJson.data).to.have.property('permissions');",
+              "    pm.expect(responseJson.data.permissions).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/templates/user/{{template_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "templates", "user", "{{template_id}}"]
+        }
+      }
+    },
+    {
+      "name": "6. All Templates with Permissions",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Templates have detailed permissions', function () {",
+              "    const responseJson = pm.response.json();",
+              "    pm.expect(responseJson.success).to.be.true;",
+              "    if (responseJson.data.length > 0) {",
+              "        const template = responseJson.data[0];",
+              "        pm.expect(template).to.have.property('permissions');",
+              "        pm.expect(template.permissions).to.be.an('array');",
+              "        console.log('Template permissions:', template.permissions);",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/templates/user/permissions",
+          "host": ["{{base_url}}"],
+          "path": ["api", "templates", "user", "permissions"]
+        }
+      }
+    }
+  ]
+}

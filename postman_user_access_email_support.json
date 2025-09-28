@@ -1,0 +1,434 @@
+{
+    "info": {
+        "name": "User Access API - Email Support",
+        "description": "Collection untuk menguji API User Logbook Access yang mendukung input email",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Create Access with Email",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"user_email\": \"{{test_user_email}}\",\n    \"logbook_template_id\": \"{{template_id}}\",\n    \"logbook_role_id\": 1\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/api/user-access",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "user-access"]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status code is 201', function () {",
+                            "    pm.response.to.have.status(201);",
+                            "});",
+                            "",
+                            "pm.test('Response has success property', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson).to.have.property('success');",
+                            "    pm.expect(responseJson.success).to.be.true;",
+                            "});",
+                            "",
+                            "pm.test('User email was resolved', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson).to.have.property('user_resolved');",
+                            "    pm.expect(responseJson.user_resolved).to.have.property('email');",
+                            "    pm.expect(responseJson.user_resolved.email).to.equal(pm.variables.get('test_user_email'));",
+                            "});",
+                            "",
+                            "pm.test('Data contains user_id from resolved email', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson.data).to.have.property('user_id');",
+                            "    pm.expect(responseJson.data.user_id).to.be.a('string');",
+                            "    // Store user_id for other tests",
+                            "    pm.environment.set('resolved_user_id', responseJson.data.user_id);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Create Access with User ID (Legacy)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"logbook_template_id\": \"{{template_id}}\",\n    \"logbook_role_id\": 1\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/api/user-access",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "user-access"]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status code is 201 or 409 (already exists)', function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([201, 409]);",
+                            "});",
+                            "",
+                            "pm.test('Response has success property', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson).to.have.property('success');",
+                            "});",
+                            "",
+                            "if (pm.response.code === 201) {",
+                            "    pm.test('Access created successfully', function () {",
+                            "        const responseJson = pm.response.json();",
+                            "        pm.expect(responseJson.success).to.be.true;",
+                            "        pm.expect(responseJson.data).to.have.property('user_id');",
+                            "    });",
+                            "}"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Test Invalid Email",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"user_email\": \"nonexistent@example.com\",\n    \"logbook_template_id\": \"{{template_id}}\",\n    \"logbook_role_id\": 1\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/api/user-access",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "user-access"]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status code is 404', function () {",
+                            "    pm.response.to.have.status(404);",
+                            "});",
+                            "",
+                            "pm.test('Error response for invalid email', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson).to.have.property('success');",
+                            "    pm.expect(responseJson.success).to.be.false;",
+                            "    pm.expect(responseJson).to.have.property('message');",
+                            "    pm.expect(responseJson.message).to.include('User not found');",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Update Access with Email",
+            "request": {
+                "method": "PUT",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"user_email\": \"{{test_user_email}}\",\n    \"logbook_role_id\": 2\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/api/user-access/{{access_id}}",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "user-access", "{{access_id}}"]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status code is 200', function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test('Access updated successfully', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson).to.have.property('success');",
+                            "    pm.expect(responseJson.success).to.be.true;",
+                            "    pm.expect(responseJson).to.have.property('user_resolved');",
+                            "});",
+                            "",
+                            "pm.test('Role was updated', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson.data.logbook_role_id).to.equal(2);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Bulk Create with Emails",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"logbook_template_id\": \"{{template_id}}\",\n    \"users\": [\n        {\n            \"user_email\": \"{{test_user_email}}\",\n            \"logbook_role_id\": 1\n        },\n        {\n            \"user_email\": \"{{test_user_email_2}}\",\n            \"logbook_role_id\": 2\n        }\n    ]\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/api/user-access/bulk",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "user-access", "bulk"]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status code is 201 or 422', function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([201, 422]);",
+                            "});",
+                            "",
+                            "pm.test('Response has counts', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson).to.have.property('created_count');",
+                            "    pm.expect(responseJson).to.have.property('skipped_count');",
+                            "    pm.expect(responseJson).to.have.property('error_count');",
+                            "});",
+                            "",
+                            "pm.test('Created entries have user_resolved info', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    if (responseJson.created && responseJson.created.length > 0) {",
+                            "        responseJson.created.forEach(item => {",
+                            "            pm.expect(item).to.have.property('user_resolved');",
+                            "            pm.expect(item.user_resolved).to.have.property('email');",
+                            "        });",
+                            "    }",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Bulk Create Mixed (Email + User ID)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"logbook_template_id\": \"{{template_id_2}}\",\n    \"users\": [\n        {\n            \"user_email\": \"{{test_user_email}}\",\n            \"logbook_role_id\": 1\n        },\n        {\n            \"user_id\": \"{{user_id}}\",\n            \"logbook_role_id\": 2\n        }\n    ]\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/api/user-access/bulk",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "user-access", "bulk"]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status code is 201 or 422', function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([201, 422]);",
+                            "});",
+                            "",
+                            "pm.test('Mixed input types handled correctly', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson).to.have.property('created_count');",
+                            "    pm.expect(responseJson).to.have.property('created');",
+                            "    ",
+                            "    // Check that both email and user_id inputs were processed",
+                            "    if (responseJson.created && responseJson.created.length > 0) {",
+                            "        let hasEmailResolved = false;",
+                            "        let hasUserIdResolved = false;",
+                            "        ",
+                            "        responseJson.created.forEach(item => {",
+                            "            if (item.user_resolved && item.user_resolved.email) {",
+                            "                hasEmailResolved = true;",
+                            "            }",
+                            "            if (item.user && item.user.id) {",
+                            "                hasUserIdResolved = true;",
+                            "            }",
+                            "        });",
+                            "        ",
+                            "        pm.expect(hasEmailResolved || hasUserIdResolved).to.be.true;",
+                            "    }",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Test Validation - Both Email and User ID",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"user_email\": \"{{test_user_email}}\",\n    \"logbook_template_id\": \"{{template_id}}\",\n    \"logbook_role_id\": 1\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/api/user-access",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "user-access"]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Should use user_id when both provided', function () {",
+                            "    // The API should prioritize user_id when both are provided",
+                            "    pm.expect(pm.response.code).to.be.oneOf([201, 409, 422]);",
+                            "});",
+                            "",
+                            "pm.test('Response indicates which field was used', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    if (pm.response.code === 201) {",
+                            "        pm.expect(responseJson).to.have.property('data');",
+                            "        pm.expect(responseJson.data.user_id).to.equal(pm.variables.get('user_id'));",
+                            "    }",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://127.0.0.1:8000",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "template_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "template_id_2",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "user_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "test_user_email",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "test_user_email_2",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "access_id",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}

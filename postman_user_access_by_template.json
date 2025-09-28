@@ -1,0 +1,444 @@
+{
+    "info": {
+        "name": "User Access by Template API",
+        "description": "Collection untuk menguji API pencarian user access berdasarkan template_id",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Get Users by Template (Basic)",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/user-access/template/{{template_id}}",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "user-access", "template", "{{template_id}}"]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status code is 200', function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test('Response has success property', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson).to.have.property('success');",
+                            "    pm.expect(responseJson.success).to.be.true;",
+                            "});",
+                            "",
+                            "pm.test('Response contains template info', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson).to.have.property('template');",
+                            "    pm.expect(responseJson.template).to.have.property('id');",
+                            "    pm.expect(responseJson.template).to.have.property('name');",
+                            "});",
+                            "",
+                            "pm.test('Response has pagination info', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson).to.have.property('pagination');",
+                            "    pm.expect(responseJson.pagination).to.have.property('total');",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Get Users by Template with Filters",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/user-access/template/{{template_id}}?role_id=1&user_email=admin&sort_by=user_name&sort_direction=asc&per_page=10",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "user-access", "template", "{{template_id}}"],
+                    "query": [
+                        {
+                            "key": "role_id",
+                            "value": "1"
+                        },
+                        {
+                            "key": "user_email",
+                            "value": "admin"
+                        },
+                        {
+                            "key": "sort_by",
+                            "value": "user_name"
+                        },
+                        {
+                            "key": "sort_direction",
+                            "value": "asc"
+                        },
+                        {
+                            "key": "per_page",
+                            "value": "10"
+                        }
+                    ]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status code is 200', function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test('Filtered results contain expected role', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    if (responseJson.data && responseJson.data.length > 0) {",
+                            "        responseJson.data.forEach(access => {",
+                            "            pm.expect(access.logbook_role_id).to.equal(1);",
+                            "        });",
+                            "    }",
+                            "});",
+                            "",
+                            "pm.test('Results are sorted by user name', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    if (responseJson.data && responseJson.data.length > 1) {",
+                            "        for (let i = 1; i < responseJson.data.length; i++) {",
+                            "            const prevName = responseJson.data[i-1].user.name.toLowerCase();",
+                            "            const currName = responseJson.data[i].user.name.toLowerCase();",
+                            "            pm.expect(prevName <= currName).to.be.true;",
+                            "        }",
+                            "    }",
+                            "});",
+                            "",
+                            "pm.test('Per page limit respected', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson.pagination.per_page).to.equal(10);",
+                            "    pm.expect(responseJson.data.length).to.be.at.most(10);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Get Users by Template (No Pagination)",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/user-access/template/{{template_id}}?paginate=false",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "user-access", "template", "{{template_id}}"],
+                    "query": [
+                        {
+                            "key": "paginate",
+                            "value": "false"
+                        }
+                    ]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status code is 200', function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test('Response has total_count instead of pagination', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson).to.have.property('total_count');",
+                            "    pm.expect(responseJson).to.not.have.property('pagination');",
+                            "});",
+                            "",
+                            "pm.test('All data returned without pagination', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson.data.length).to.equal(responseJson.total_count);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Get Template Access Statistics",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/user-access/template/{{template_id}}/stats",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "user-access", "template", "{{template_id}}", "stats"]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status code is 200', function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test('Response contains statistics', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson).to.have.property('statistics');",
+                            "    pm.expect(responseJson.statistics).to.have.property('total_users');",
+                            "    pm.expect(responseJson.statistics).to.have.property('role_distribution');",
+                            "    pm.expect(responseJson.statistics).to.have.property('recent_access');",
+                            "});",
+                            "",
+                            "pm.test('Role distribution is array', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson.statistics.role_distribution).to.be.an('array');",
+                            "});",
+                            "",
+                            "pm.test('Recent access is array with max 10 items', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson.statistics.recent_access).to.be.an('array');",
+                            "    pm.expect(responseJson.statistics.recent_access.length).to.be.at.most(10);",
+                            "});",
+                            "",
+                            "pm.test('Total users matches role distribution sum', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    const totalFromRoles = responseJson.statistics.role_distribution.reduce((sum, role) => sum + role.user_count, 0);",
+                            "    pm.expect(responseJson.statistics.total_users).to.equal(totalFromRoles);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Search Users by Name",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/user-access/template/{{template_id}}?user_name={{search_user_name}}&sort_by=user_name",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "user-access", "template", "{{template_id}}"],
+                    "query": [
+                        {
+                            "key": "user_name",
+                            "value": "{{search_user_name}}"
+                        },
+                        {
+                            "key": "sort_by",
+                            "value": "user_name"
+                        }
+                    ]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status code is 200', function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test('Search results contain search term', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    const searchTerm = pm.variables.get('search_user_name').toLowerCase();",
+                            "    ",
+                            "    if (responseJson.data && responseJson.data.length > 0) {",
+                            "        responseJson.data.forEach(access => {",
+                            "            const userName = access.user.name.toLowerCase();",
+                            "            pm.expect(userName).to.include(searchTerm);",
+                            "        });",
+                            "    }",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Sort by Role Name",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/user-access/template/{{template_id}}?sort_by=role_name&sort_direction=desc",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "user-access", "template", "{{template_id}}"],
+                    "query": [
+                        {
+                            "key": "sort_by",
+                            "value": "role_name"
+                        },
+                        {
+                            "key": "sort_direction",
+                            "value": "desc"
+                        }
+                    ]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status code is 200', function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test('Results are sorted by role name descending', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    if (responseJson.data && responseJson.data.length > 1) {",
+                            "        for (let i = 1; i < responseJson.data.length; i++) {",
+                            "            const prevRole = responseJson.data[i-1].logbookRole.name.toLowerCase();",
+                            "            const currRole = responseJson.data[i].logbookRole.name.toLowerCase();",
+                            "            pm.expect(prevRole >= currRole).to.be.true;",
+                            "        }",
+                            "    }",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Test Invalid Template ID",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/user-access/template/invalid-uuid-123",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "user-access", "template", "invalid-uuid-123"]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status code is 404', function () {",
+                            "    pm.response.to.have.status(404);",
+                            "});",
+                            "",
+                            "pm.test('Error response for invalid template', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson).to.have.property('success');",
+                            "    pm.expect(responseJson.success).to.be.false;",
+                            "    pm.expect(responseJson).to.have.property('message');",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Test Stats for Invalid Template",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/user-access/template/invalid-uuid-123/stats",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "user-access", "template", "invalid-uuid-123", "stats"]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status code is 404', function () {",
+                            "    pm.response.to.have.status(404);",
+                            "});",
+                            "",
+                            "pm.test('Error response for invalid template stats', function () {",
+                            "    const responseJson = pm.response.json();",
+                            "    pm.expect(responseJson).to.have.property('success');",
+                            "    pm.expect(responseJson.success).to.be.false;",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://127.0.0.1:8000",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "template_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "search_user_name",
+            "value": "admin",
+            "type": "string"
+        }
+    ]
+}

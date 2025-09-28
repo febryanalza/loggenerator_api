@@ -3,9 +3,9 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
+use App\Models\User;
+use Spatie\Permission\Models\Role;
 
 class UserSeeder extends Seeder
 {
@@ -14,49 +14,70 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
+        // Create sample users for each role
         $users = [
             [
-                'id' => Str::uuid()->toString(),
-                'name' => 'Admin User',
+                'name' => 'Super Administrator',
+                'email' => 'superadmin@example.com',
+                'password' => Hash::make('password'),
+                'role' => 'Super Admin'
+            ],
+            [
+                'name' => 'System Administrator', 
                 'email' => 'admin@example.com',
                 'password' => Hash::make('password'),
-                'status' => 'active',
-                'phone_number' => '1234567890',
-                'created_at' => now(),
-                'updated_at' => now(),
+                'role' => 'Admin'
             ],
             [
-                'id' => Str::uuid()->toString(),
-                'name' => 'Manager User',
-                'email' => 'manager@example.com',
+                'name' => 'Department Manager',
+                'email' => 'manager@example.com', 
                 'password' => Hash::make('password'),
-                'status' => 'active',
-                'phone_number' => '2345678901',
-                'created_at' => now(),
-                'updated_at' => now(),
+                'role' => 'Manager'
             ],
             [
-                'id' => Str::uuid()->toString(),
                 'name' => 'Regular User',
                 'email' => 'user@example.com',
                 'password' => Hash::make('password'),
-                'status' => 'active',
-                'phone_number' => '3456789012',
-                'created_at' => now(),
-                'updated_at' => now(),
+                'role' => 'User'
             ],
             [
-                'id' => Str::uuid()->toString(),
-                'name' => 'Test User',
-                'email' => 'test@example.com',
-                'password' => Hash::make('password'),
-                'status' => 'active',
-                'phone_number' => null, // Added the missing phone_number field with null value
-                'created_at' => now(),
-                'updated_at' => now(),
+                'name' => 'John Doe',
+                'email' => 'john@example.com',
+                'password' => Hash::make('password'), 
+                'role' => 'User'
             ],
+            [
+                'name' => 'Jane Smith',
+                'email' => 'jane@example.com',
+                'password' => Hash::make('password'),
+                'role' => 'User'
+            ]
         ];
 
-        DB::table('users')->insert($users);
+        foreach ($users as $userData) {
+            $user = User::firstOrCreate(
+                ['email' => $userData['email']],
+                [
+                    'name' => $userData['name'],
+                    'password' => $userData['password'],
+                    'email_verified_at' => now(),
+                    'status' => 'active',
+                    'phone_number' => null
+                ]
+            );
+
+            // Assign role to user
+            $role = Role::where('name', $userData['role'])->first();
+            if ($role && !$user->hasRole($userData['role'])) {
+                $user->assignRole($role);
+            }
+        }
+
+        $this->command->info('Sample users seeded successfully.');
+        $this->command->info('Login credentials:');
+        $this->command->info('Super Admin: superadmin@example.com / password');
+        $this->command->info('Admin: admin@example.com / password');
+        $this->command->info('Manager: manager@example.com / password');
+        $this->command->info('User: user@example.com / password');
     }
 }

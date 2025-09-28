@@ -46,6 +46,11 @@ class AuthController extends Controller
             'last_login' => now(),
         ]);
 
+        // Ensure user has default 'User' role (fallback if trigger fails)
+        if (!$user->hasRole('User')) {
+            $user->assignRole('User');
+        }
+
         // Create audit log
         \App\Models\AuditLog::create([
             'user_id' => $user->id,

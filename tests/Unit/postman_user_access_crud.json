@@ -1,0 +1,497 @@
+{
+  "info": {
+    "name": "User Logbook Access API - Complete CRUD",
+    "description": "Comprehensive testing for User Logbook Access management endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "template_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "access_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Setup",
+      "item": [
+        {
+          "name": "1. Get Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const responseJson = pm.response.json();",
+                  "    if (responseJson.token) {",
+                  "        pm.collectionVariables.set('token', responseJson.token);",
+                  "        console.log('Token saved:', responseJson.token);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/test-token",
+              "host": ["{{base_url}}"],
+              "path": ["test-token"]
+            }
+          }
+        },
+        {
+          "name": "2. Create Template for Testing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const responseJson = pm.response.json();",
+                  "    if (responseJson.data?.id) {",
+                  "        pm.collectionVariables.set('template_id', responseJson.data.id);",
+                  "        console.log('Template ID saved:', responseJson.data.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"name\\\": \\\"Test Template for Access {{$timestamp}}\\\",\\n  \\\"description\\\": \\\"Template for testing user access management\\\"\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/templates",
+              "host": ["{{base_url}}"],
+              "path": ["api", "templates"]
+            }
+          }
+        },
+        {
+          "name": "3. Get User ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const responseJson = pm.response.json();",
+                  "    if (responseJson.id) {",
+                  "        pm.collectionVariables.set('user_id', responseJson.id);",
+                  "        console.log('User ID saved:', responseJson.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Access CRUD",
+      "item": [
+        {
+          "name": "1. Get All User Access",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has pagination', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson).to.have.property('pagination');",
+                  "    pm.expect(responseJson.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user-access",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user-access"]
+            }
+          }
+        },
+        {
+          "name": "2. Create User Access",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Access created successfully', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.success).to.be.true;",
+                  "    pm.expect(responseJson.data).to.have.property('id');",
+                  "    ",
+                  "    // Save access ID for update/delete tests",
+                  "    pm.collectionVariables.set('access_id', responseJson.data.id);",
+                  "});",
+                  "",
+                  "pm.test('Response has relationships', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.data).to.have.property('user');",
+                  "    pm.expect(responseJson.data).to.have.property('logbook_template');",
+                  "    pm.expect(responseJson.data).to.have.property('logbook_role');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"user_id\\\": \\\"{{user_id}}\\\",\\n  \\\"logbook_template_id\\\": \\\"{{template_id}}\\\",\\n  \\\"logbook_role_id\\\": 1\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user-access",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user-access"]
+            }
+          }
+        },
+        {
+          "name": "3. Get Specific User Access",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Access details retrieved', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.success).to.be.true;",
+                  "    pm.expect(responseJson.data).to.have.property('id');",
+                  "    pm.expect(responseJson.data.id).to.equal(pm.collectionVariables.get('access_id'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user-access/{{access_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user-access", "{{access_id}}"]
+            }
+          }
+        },
+        {
+          "name": "4. Update User Access",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Access updated successfully', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.success).to.be.true;",
+                  "    pm.expect(responseJson.data.logbook_role_id).to.equal(2);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"logbook_role_id\\\": 2\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user-access/{{access_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user-access", "{{access_id}}"]
+            }
+          }
+        },
+        {
+          "name": "5. Filter by Template",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Filtered results returned', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.success).to.be.true;",
+                  "    ",
+                  "    // All returned items should have the same template_id",
+                  "    const templateId = pm.collectionVariables.get('template_id');",
+                  "    responseJson.data.forEach(access => {",
+                  "        pm.expect(access.logbook_template_id).to.equal(templateId);",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user-access?template_id={{template_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user-access"],
+              "query": [{"key": "template_id", "value": "{{template_id}}"}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bulk Operations",
+      "item": [
+        {
+          "name": "1. Bulk Create User Access",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Bulk operation completed', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.success).to.be.true;",
+                  "    pm.expect(responseJson).to.have.property('created_count');",
+                  "    pm.expect(responseJson).to.have.property('skipped_count');",
+                  "    console.log('Created:', responseJson.created_count, 'Skipped:', responseJson.skipped_count);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"logbook_template_id\\\": \\\"{{template_id}}\\\",\\n  \\\"users\\\": [\\n    {\\n      \\\"user_id\\\": \\\"{{user_id}}\\\",\\n      \\\"logbook_role_id\\\": 1\\n    }\\n  ]\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user-access/bulk",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user-access", "bulk"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error Testing",
+      "item": [
+        {
+          "name": "1. Create Duplicate Access",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 409', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "pm.test('Duplicate error message', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.success).to.be.false;",
+                  "    pm.expect(responseJson.message).to.include('already has access');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"user_id\\\": \\\"{{user_id}}\\\",\\n  \\\"logbook_template_id\\\": \\\"{{template_id}}\\\",\\n  \\\"logbook_role_id\\\": 1\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user-access",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user-access"]
+            }
+          }
+        },
+        {
+          "name": "2. Invalid UUID Format",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 422', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "pm.test('Validation error', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.success).to.be.false;",
+                  "    pm.expect(responseJson).to.have.property('errors');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"user_id\\\": \\\"invalid-uuid\\\",\\n  \\\"logbook_template_id\\\": \\\"{{template_id}}\\\",\\n  \\\"logbook_role_id\\\": 1\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user-access",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user-access"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cleanup",
+      "item": [
+        {
+          "name": "1. Delete User Access",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Access deleted successfully', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.success).to.be.true;",
+                  "    pm.expect(responseJson).to.have.property('deleted_access');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user-access/{{access_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user-access", "{{access_id}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

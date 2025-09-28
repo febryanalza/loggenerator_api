@@ -9,6 +9,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -65,6 +66,31 @@ class User extends Authenticatable
         'password' => 'hashed',
         'last_login' => 'datetime',
     ];
+    
+    /**
+     * The "booted" method of the model.
+     * Ensures every new user gets the default 'User' role
+     */
+    protected static function booted(): void
+    {
+        static::created(function (User $user) {
+            // Delay role assignment to ensure all database operations are complete
+            // This is a fallback if the database trigger fails
+            if (!$user->roles()->exists()) {
+                try {
+                    if (\Spatie\Permission\Models\Role::where('name', 'User')->where('guard_name', 'web')->exists()) {
+                        $user->assignRole('User');
+                    }
+                } catch (\Exception $e) {
+                    // Log error but don't break user creation
+                    Log::warning('Failed to assign default role to user: ' . $e->getMessage(), [
+                        'user_id' => $user->id,
+                        'user_email' => $user->email
+                    ]);
+                }
+            }
+        });
+    }
     
     /**
      * Get the templates created by this user.
