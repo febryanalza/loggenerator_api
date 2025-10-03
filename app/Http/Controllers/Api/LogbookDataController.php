@@ -10,10 +10,13 @@ use App\Http\Resources\LogbookEntryMinimalResource;
 use App\Models\LogbookData;
 use App\Models\LogbookTemplate;
 use App\Models\AuditLog;
+use App\Models\UserLogbookAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use App\Models\User;
 
 class LogbookDataController extends Controller
 {
@@ -401,40 +404,67 @@ class LogbookDataController extends Controller
         try {
             $logbookData = LogbookData::with(['template.fields', 'writer'])->findOrFail($id);
             
-            // Check if user can update this entry (only writer)
+            // Check if user can update this entry (Owner or Editor only)
             $user = Auth::user();
-            if ($logbookData->writer_id !== $user->id) {
+            
+            // Check if user has Owner or Editor role for this template
+            $userAccess = UserLogbookAccess::where('user_id', $user->id)
+                ->where('logbook_template_id', $logbookData->template_id)
+                ->with('logbookRole')
+                ->first();
+            
+            $canUpdate = false;
+            
+            // Allow only if user has Owner or Editor role for this template
+            if ($userAccess && in_array($userAccess->logbookRole->name, ['Owner', 'Editor'])) {
+                $canUpdate = true;
+            }
+            
+            if (!$canUpdate) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'You do not have permission to update this entry'
+                    'message' => 'You do not have permission to update this entry. Only users with Owner or Editor role can update logbook entries.'
                 ], 403);
             }
             
-            // Verify all required fields are present
+            // Validate that provided fields exist in template (optional validation)
             $templateFields = $logbookData->template->fields->pluck('name')->toArray();
             $providedFields = array_keys($request->data);
             
-            $missingFields = array_diff($templateFields, $providedFields);
-            if (count($missingFields) > 0) {
+            // Check if any provided field is not in template (optional security check)
+            $invalidFields = array_diff($providedFields, $templateFields);
+            if (count($invalidFields) > 0) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Missing required fields',
-                    'missing_fields' => $missingFields
+                    'message' => 'Invalid fields provided',
+                    'invalid_fields' => $invalidFields
                 ], 422);
             }
             
-            // Handle image uploads if any
-            $data = $this->processImageUploads($request->data, $logbookData->template);
+            // Handle image uploads if any for the provided fields
+            $newData = $this->processImageUploads($request->data, $logbookData->template);
+            
+            // Merge new data with existing data (partial update)
+            $existingData = $logbookData->data ?? [];
+            $mergedData = array_merge($existingData, $newData);
             
             // Update the logbook data
-            $logbookData->data = $data;
+            $logbookData->data = $mergedData;
             $logbookData->save();
+            
+            // Determine update context for audit log
+            $updateContext = '';
+            if ($userAccess && $userAccess->logbookRole->name === 'Owner') {
+                $updateContext = ' (as Owner)';
+            } elseif ($userAccess && $userAccess->logbookRole->name === 'Editor') {
+                $updateContext = ' (as Editor)';
+            }
             
             // Create audit log
             AuditLog::create([
                 'user_id' => Auth::id(),
                 'action' => 'UPDATE_LOGBOOK_ENTRY',
-                'description' => 'Updated logbook entry for ' . $logbookData->template->name,
+                'description' => "Updated logbook entry for {$logbookData->template->name}{$updateContext}. Original writer: {$logbookData->writer->name}",
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent()
             ]);
@@ -455,6 +485,8 @@ class LogbookDataController extends Controller
 
     /**
      * Remove the specified logbook entry from storage.
+     * Authorization: Editor, Supervisor, Owner roles can delete entries
+     * Administrative override: Super Admin, Admin, Manager, Institution Admin
      *
      * @param  string  $id
      * @return \Illuminate\Http\JsonResponse
@@ -463,14 +495,25 @@ class LogbookDataController extends Controller
     {
         try {
             $logbookData = LogbookData::with(['template', 'writer'])->findOrFail($id);
-            
-            // Check if user can delete this entry (only writer)
             $user = Auth::user();
-            if ($logbookData->writer_id !== $user->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You do not have permission to delete this entry'
-                ], 403);
+            
+            // Check if user has administrative roles that can override
+            if ($this->hasAdministrativeOverride($user)) {
+                // Admin users can delete any entry
+            } else {
+                // For regular users, check if they have Editor+ role for this template
+                $userAccess = UserLogbookAccess::where('user_id', $user->id)
+                    ->where('logbook_template_id', $logbookData->template_id)
+                    ->with('logbookRole')
+                    ->first();
+                
+                if (!$userAccess || !in_array($userAccess->logbookRole->name, ['Editor', 'Supervisor', 'Owner'])) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You do not have permission to delete entries for this template. Required: Editor, Supervisor, or Owner role.',
+                        'required_access' => 'Editor, Supervisor, or Owner role for template: ' . $logbookData->template->name
+                    ], 403);
+                }
             }
             
             $templateName = $logbookData->template->name;
@@ -541,5 +584,21 @@ class LogbookDataController extends Controller
             // Log error but don't fail the deletion
             Log::error('Failed to delete image files: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Check if user has administrative roles that can override logbook permissions
+     *
+     * @param  User  $user
+     * @return bool
+     */
+    private function hasAdministrativeOverride($user): bool
+    {
+        return DB::table('model_has_roles')
+            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+            ->where('model_has_roles.model_id', $user->id)
+            ->where('model_has_roles.model_type', User::class)
+            ->whereIn('roles.name', ['Super Admin', 'Admin', 'Manager', 'Institution Admin'])
+            ->exists();
     }
 }

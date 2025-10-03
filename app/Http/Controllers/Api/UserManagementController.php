@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateUserRequest;
 use App\Models\User;
+use App\Models\Institution;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -14,30 +15,38 @@ class UserManagementController extends Controller
 {
     /**
      * Create a new user with specified role
-     * Only accessible by Super Admin
+     * Accessible by Super Admin and Admin
      *
      * @param CreateUserRequest $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function createUser(CreateUserRequest $request)
     {
-        // Verify that the authenticated user is Super Admin
-        if (!$request->user()->hasRole('Super Admin')) {
+        $currentUser = $request->user();
+        
+        // Verify that the authenticated user has permission
+        if (!$currentUser->hasAnyRole(['Super Admin', 'Admin'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized. Only Super Admin can create users with roles.'
+                'message' => 'Unauthorized. Only Super Admin and Admin can create users with roles.'
             ], 403);
         }
 
         try {
             // Validate role exists
             $roleName = $request->role;
-            $allowedRoles = ['Admin', 'Manager', 'User'];
+            
+            // Define allowed roles based on current user's role
+            if ($currentUser->hasRole('Super Admin')) {
+                $allowedRoles = ['Admin', 'Manager', 'User', 'Institution Admin'];
+            } else if ($currentUser->hasRole('Admin')) {
+                $allowedRoles = ['Manager', 'User', 'Institution Admin'];
+            }
             
             if (!in_array($roleName, $allowedRoles)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid role. Allowed roles: Admin, Manager, User'
+                    'message' => 'Invalid role. Allowed roles: ' . implode(', ', $allowedRoles)
                 ], 422);
             }
 
@@ -50,24 +59,52 @@ class UserManagementController extends Controller
                 ], 422);
             }
 
-            // Create user
-            $user = User::create([
+            // Prepare user data
+            $userData = [
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'phone_number' => $request->phone_number,
                 'status' => 'active',
                 'last_login' => null,
-            ]);
+            ];
+
+            // Handle institution_id for Institution Admin role
+            if ($roleName === 'Institution Admin') {
+                if (!$request->has('institution_id') || empty($request->institution_id)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Institution ID is required for Institution Admin role'
+                    ], 422);
+                }
+                
+                // Verify institution exists
+                $institution = \App\Models\Institution::find($request->institution_id);
+                if (!$institution) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Institution not found'
+                    ], 422);
+                }
+                
+                $userData['institution_id'] = $request->institution_id;
+            }
+
+            // Create user
+            $user = User::create($userData);
 
             // Assign role to user
             $user->assignRole($roleName);
 
+            // Get current user role for audit log
+            $currentUserRole = $currentUser->getRoleNames()->first();
+            $institutionText = $roleName === 'Institution Admin' ? " for institution {$institution->name}" : '';
+
             // Create audit log
             \App\Models\AuditLog::create([
-                'user_id' => $request->user()->id,
+                'user_id' => $currentUser->id,
                 'action' => 'CREATE_USER',
-                'description' => "Super Admin created user '{$user->name}' with role '{$roleName}'",
+                'description' => "{$currentUserRole} created user '{$user->name}' with role '{$roleName}'{$institutionText}",
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent()
             ]);
@@ -76,24 +113,36 @@ class UserManagementController extends Controller
             \App\Models\AuditLog::create([
                 'user_id' => $user->id,
                 'action' => 'USER_CREATED',
-                'description' => "User account created by Super Admin with role '{$roleName}'",
+                'description' => "User account created by {$currentUserRole} with role '{$roleName}'{$institutionText}",
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent()
             ]);
+
+            // Prepare response data
+            $responseData = [
+                'id' => $user->id,  
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone_number' => $user->phone_number,
+                'status' => $user->status,
+                'role' => $roleName,
+                'created_at' => $user->created_at
+            ];
+
+            // Add institution information if applicable
+            if ($roleName === 'Institution Admin' && isset($institution)) {
+                $responseData['institution'] = [
+                    'id' => $institution->id,
+                    'name' => $institution->name,
+                    'description' => $institution->description
+                ];
+            }
 
             return response()->json([
                 'success' => true,
                 'message' => 'User created successfully',
                 'data' => [
-                    'user' => [
-                        'id' => $user->id,
-                        'name' => $user->name,
-                        'email' => $user->email,
-                        'phone_number' => $user->phone_number,
-                        'status' => $user->status,
-                        'role' => $roleName,
-                        'created_at' => $user->created_at
-                    ]
+                    'user' => $responseData
                 ]
             ], 201);
 
@@ -119,21 +168,23 @@ class UserManagementController extends Controller
      */
     public function getUsers(Request $request)
     {
-        // Verify that the authenticated user is Super Admin
-        if (!$request->user()->hasRole('Super Admin')) {
+        $currentUser = $request->user();
+        
+        // Verify that the authenticated user has permission
+        if (!$currentUser->hasAnyRole(['Super Admin', 'Admin'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized. Only Super Admin can view users.'
+                'message' => 'Unauthorized. Only Super Admin and Admin can view users.'
             ], 403);
         }
 
         try {
             $perPage = $request->get('per_page', 15);
-            $users = User::with('roles')
+            $users = User::with(['roles', 'institution'])
                 ->paginate($perPage);
 
             $userData = $users->map(function ($user) {
-                return [
+                $userData = [
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
@@ -143,6 +194,17 @@ class UserManagementController extends Controller
                     'created_at' => $user->created_at,
                     'last_login' => $user->last_login
                 ];
+
+                // Add institution information if user belongs to one
+                if ($user->institution) {
+                    $userData['institution'] = [
+                        'id' => $user->institution->id,
+                        'name' => $user->institution->name,
+                        'description' => $user->institution->description
+                    ];
+                }
+
+                return $userData;
             });
 
             return response()->json([

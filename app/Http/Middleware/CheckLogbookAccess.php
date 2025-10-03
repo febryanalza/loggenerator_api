@@ -155,7 +155,7 @@ class CheckLogbookAccess
     }
 
     /**
-     * Check if user is Super Admin or Admin
+     * Check if user has administrative roles that can override logbook access
      *
      * @param  User  $user
      * @return bool
@@ -166,7 +166,7 @@ class CheckLogbookAccess
             ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
             ->where('model_has_roles.model_id', $user->id)
             ->where('model_has_roles.model_type', User::class)
-            ->whereIn('roles.name', ['Super Admin', 'Admin'])
+            ->whereIn('roles.name', ['Super Admin', 'Admin', 'Manager', 'Institution Admin'])
             ->exists();
     }
 
@@ -178,12 +178,52 @@ class CheckLogbookAccess
      */
     private function getTemplateIdFromRequest(Request $request): ?string
     {
-        // Try different common parameter names
-        return $request->input('template_id') 
+        // Try different common parameter names first
+        $templateId = $request->input('template_id') 
             ?? $request->input('logbook_template_id')
             ?? $request->route('template_id')
-            ?? $request->route('templateId')
-            ?? $request->route('id');
+            ?? $request->route('templateId');
+            
+        if ($templateId) {
+            return $templateId;
+        }
+        
+        // Special handling for logbook entry routes (e.g., PUT /logbook-entries/{id})
+        $entryId = $request->route('id');
+        if ($entryId && $this->isLogbookEntryRoute($request)) {
+            return $this->getTemplateIdFromLogbookEntry($entryId);
+        }
+        
+        return $entryId;
+    }
+    
+    /**
+     * Check if the current route is a logbook entry route
+     *
+     * @param  Request  $request
+     * @return bool
+     */
+    private function isLogbookEntryRoute(Request $request): bool
+    {
+        $uri = $request->route()->uri ?? '';
+        return str_contains($uri, 'logbook-entries/{id}');
+    }
+    
+    /**
+     * Get template ID from logbook entry ID
+     *
+     * @param  string  $entryId
+     * @return string|null
+     */
+    private function getTemplateIdFromLogbookEntry(string $entryId): ?string
+    {
+        try {
+            return DB::table('logbook_data')
+                ->where('id', $entryId)
+                ->value('template_id');
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     /**

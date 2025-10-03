@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'allowed_client_ids' => [
+            env('GOOGLE_CLIENT_ID'), // Web client ID
+            env('GOOGLE_ANDROID_CLIENT_ID'),
+            env('GOOGLE_IOS_CLIENT_ID'),
+        ],
+    ],
+
 ];

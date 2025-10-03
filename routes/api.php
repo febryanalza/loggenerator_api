@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\FileController;
 use App\Http\Controllers\Api\UserLogbookAccessController;
 use App\Http\Controllers\Api\UserManagementController;
+use App\Http\Controllers\Api\LogbookVerificationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,7 @@ use Illuminate\Support\Facades\Route;
 // Public routes
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
+Route::post('/auth/google', [AuthController::class, 'googleLogin']);
 
 // Public file access
 Route::get('/images/logbook/{filename}', [FileController::class, 'getLogbookImage']);
@@ -35,6 +37,7 @@ Route::get('/images/logbook/{filename}', [FileController::class, 'getLogbookImag
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/auth/google/unlink', [AuthController::class, 'unlinkGoogle']);
     
     // User profile
     Route::get('/user', function (Request $request) {
@@ -71,6 +74,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/user-access/{id}', [UserLogbookAccessController::class, 'update']);
         Route::delete('/user-access/{id}', [UserLogbookAccessController::class, 'destroy']);
     });
+
+    // Logbook Verification routes
+    Route::put('/logbook/verification', [LogbookVerificationController::class, 'updateVerificationStatus']);
+    Route::get('/logbook/verification/{templateId}', [LogbookVerificationController::class, 'getVerificationStatus']);
+    
+    // Logbook Assessment routes (Institution Admin only)
+    Route::middleware('role:Institution Admin')->group(function () {
+        Route::put('/logbook/assessment', [LogbookVerificationController::class, 'updateAssessmentStatus']);
+    });
     
     // Logbook Field routes - Template management
     Route::middleware('permission:manage templates')->group(function () {
@@ -92,13 +104,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/logbook-entries/{id}', [LogbookDataController::class, 'update']);
     });
     
-    // Logbook Data routes - Deletion (requires Supervisor+ role)
-    Route::middleware('logbook.access:Supervisor,Owner')->group(function () {
+    // Logbook Data routes - Deletion (requires Editor+ role)
+    Route::middleware('logbook.access:Editor,Supervisor,Owner')->group(function () {
         Route::delete('/logbook-entries/{id}', [LogbookDataController::class, 'destroy']);
     });
     
     // Permission routes - View access for Admin+, Create operations Super Admin only
-    Route::middleware('role:Super Admin,Admin')->group(function () {
+    Route::middleware('role:Super Admin, Admin')->group(function () {
         Route::get('/permissions', [PermissionController::class, 'index']);
         Route::get('/permissions/{id}', [PermissionController::class, 'show']);
     });
@@ -136,8 +148,10 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Admin only routes
     Route::middleware('role:Super Admin,Admin')->group(function () {
-        // User management (if you have UserController)
-        // Route::apiResource('admin/users', UserController::class);
+        // User management - accessible by Super Admin and Admin
+        Route::post('/admin/users', [UserManagementController::class, 'createUser']);
+        Route::get('/admin/users', [UserManagementController::class, 'getUsers']);
+        Route::put('/admin/users/{userId}/role', [UserManagementController::class, 'updateUserRole']);
         
         // System management routes
         // Route::get('/admin/system-info', [SystemController::class, 'info']);
@@ -146,12 +160,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Super Admin only routes
     Route::middleware('role:Super Admin')->group(function () {
-        // User Management - Create users with roles
-        Route::post('/admin/users', [UserManagementController::class, 'createUser']);
-        Route::get('/admin/users', [UserManagementController::class, 'getUsers']);
-        Route::put('/admin/users/{userId}/role', [UserManagementController::class, 'updateUserRole']);
-        
-        // Critical system operations
+        // Critical system operations only for Super Admin
         // Route::delete('/admin/purge-data', [SystemController::class, 'purgeData']);
         // Route::post('/admin/reset-permissions', [SystemController::class, 'resetPermissions']);
     });

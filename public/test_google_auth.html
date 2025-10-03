@@ -1,0 +1,202 @@
+<?php
+/**
+ * Test Google Authentication
+ * 
+ * This file is for testing Google authentication flow
+ * Place this file in the public directory for easy access
+ */
+
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Google Authentication</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #4285f4;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #3367d6;
+        }
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background: #e2e3e5;
+            border: 1px solid #d6d8db;
+            color: #383d41;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Google Authentication</h1>
+        
+        <div class="info">
+            <h3>Instructions:</h3>
+            <p>1. Get Google ID Token from your mobile app (Android/iOS)</p>
+            <p>2. Paste the ID Token in the field below</p>
+            <p>3. Click "Test Google Login" to verify authentication</p>
+            <p><strong>API Endpoint:</strong> POST /api/auth/google</p>
+        </div>
+
+        <form id="googleAuthForm">
+            <div class="form-group">
+                <label for="idToken">Google ID Token:</label>
+                <textarea id="idToken" rows="5" placeholder="Paste your Google ID Token here..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="deviceName">Device Name (optional):</label>
+                <input type="text" id="deviceName" placeholder="e.g., My Android Phone" value="Test Device">
+            </div>
+            
+            <button type="submit">Test Google Login</button>
+        </form>
+
+        <div id="response"></div>
+
+        <hr style="margin: 30px 0;">
+        
+        <h3>Sample Google ID Token Structure (for reference):</h3>
+        <div class="info">
+            <pre>
+{
+  "sub": "1234567890",
+  "name": "John Doe",
+  "given_name": "John",
+  "family_name": "Doe",
+  "picture": "https://lh3.googleusercontent.com/...",
+  "email": "john.doe@gmail.com",
+  "email_verified": true,
+  "locale": "en"
+}
+            </pre>
+        </div>
+
+        <h3>Google OAuth Multi-Platform Configuration:</h3>
+        <div class="info">
+            <strong>Project ID:</strong> loggenerator-473712<br>
+            <strong>Supported Platforms:</strong><br>
+            • <strong>Web:</strong> 269022547585-vp32h6jtndjauqjpbgnmej5a026er5b7.apps.googleusercontent.com<br>
+            • <strong>Android:</strong> 269022547585-hr6c0tkp89804m196nt5m90kheraf7so.apps.googleusercontent.com<br>
+            • <strong>iOS:</strong> 269022547585-enh5sub2f0lq6f0cgldpe44da1939t3r.apps.googleusercontent.com<br>
+            <strong>Status:</strong> ✅ Multi-platform authentication ready
+        </div>
+
+        <h3>Test with Curl:</h3>
+        <div class="info">
+            <pre>
+curl -X POST "<?= $_SERVER['HTTP_HOST'] ?>/api/auth/google" \
+     -H "Content-Type: application/json" \
+     -H "Accept: application/json" \
+     -d '{
+       "id_token": "YOUR_GOOGLE_ID_TOKEN_HERE",
+       "device_name": "Test Device"
+     }'
+            </pre>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('googleAuthForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const idToken = document.getElementById('idToken').value.trim();
+            const deviceName = document.getElementById('deviceName').value.trim();
+            const responseDiv = document.getElementById('response');
+            
+            if (!idToken) {
+                responseDiv.innerHTML = '<div class="error">Please enter a Google ID Token</div>';
+                return;
+            }
+            
+            responseDiv.innerHTML = '<div class="info">Testing Google authentication...</div>';
+            
+            try {
+                const response = await fetch('/api/auth/google', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id_token: idToken,
+                        device_name: deviceName || 'Test Device'
+                    })
+                });
+                
+                const data = await response.json();
+                const statusClass = response.ok ? 'success' : 'error';
+                
+                responseDiv.innerHTML = `
+                    <div class="${statusClass}">
+                        <strong>Status:</strong> ${response.status} ${response.statusText}<br><br>
+                        <strong>Response:</strong><br>
+                        ${JSON.stringify(data, null, 2)}
+                    </div>
+                `;
+                
+            } catch (error) {
+                responseDiv.innerHTML = `
+                    <div class="error">
+                        <strong>Error:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

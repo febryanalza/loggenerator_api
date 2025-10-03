@@ -29,6 +29,19 @@ class LogbookTemplate extends Model
     protected $fillable = [
         'name',
         'description',
+        'institution_id',
+        'has_been_assessed',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'has_been_assessed' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**
@@ -93,5 +106,37 @@ class LogbookTemplate extends Model
         return $this->belongsToMany(User::class, 'user_logbook_access', 'logbook_template_id', 'user_id')
                     ->withPivot(['logbook_role_id', 'created_at', 'updated_at'])
                     ->withTimestamps();
+    }
+
+    /**
+     * Get the institution that this template belongs to
+     */
+    public function institution()
+    {
+        return $this->belongsTo(Institution::class, 'institution_id');
+    }
+
+    /**
+     * Check if template belongs to a specific institution
+     */
+    public function belongsToInstitution(string $institutionId): bool
+    {
+        return $this->institution_id === $institutionId;
+    }
+
+    /**
+     * Scope to get templates for a specific institution
+     */
+    public function scopeForInstitution($query, string $institutionId)
+    {
+        return $query->where('institution_id', $institutionId);
+    }
+
+    /**
+     * Scope to get templates without institution (global templates)
+     */
+    public function scopeGlobal($query)
+    {
+        return $query->whereNull('institution_id');
     }
 }

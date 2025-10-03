@@ -29,7 +29,12 @@ class User extends Authenticatable
         'status',
         'phone_number',
         'profile_picture',
-        'last_login'
+        'last_login',
+        'google_id',
+        'avatar_url',
+        'auth_provider',
+        'google_verified_at',
+        'institution_id'
     ];
     
     /**
@@ -65,6 +70,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'last_login' => 'datetime',
+        'google_verified_at' => 'datetime',
     ];
     
     /**
@@ -184,5 +190,29 @@ class User extends Authenticatable
         return $this->logbookAccess()
             ->where('logbook_template_id', $templateId)
             ->delete() > 0;
+    }
+
+    /**
+     * Get the institution that this user belongs to
+     */
+    public function institution()
+    {
+        return $this->belongsTo(Institution::class, 'institution_id');
+    }
+
+    /**
+     * Check if user is an institution admin
+     */
+    public function isInstitutionAdmin(): bool
+    {
+        return $this->hasRole('Institution Admin');
+    }
+
+    /**
+     * Check if user belongs to a specific institution
+     */
+    public function belongsToInstitution(string $institutionId): bool
+    {
+        return $this->institution_id === $institutionId;
     }
 }

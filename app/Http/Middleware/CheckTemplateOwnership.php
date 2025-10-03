@@ -14,7 +14,8 @@ class CheckTemplateOwnership
 {
     /**
      * Handle an incoming request to check template ownership.
-     * Only allows template owners, Super Admins, or Admins to proceed.
+     * Only allows template owners or users with administrative roles to proceed.
+     * Administrative roles: Super Admin, Admin, Manager, Institution Admin
      * 
      * Usage: Route::middleware('template.owner')->group(...)
      * Usage: Route::middleware('template.owner:template_id')->get(...)
@@ -34,7 +35,7 @@ class CheckTemplateOwnership
             ], 401);
         }
 
-        // Check if user is Super Admin or Admin (they can override ownership)
+        // Check if user has administrative roles that can override ownership
         if ($this->isSuperAdminOrAdmin($user)) {
             return $next($request);
         }
@@ -56,8 +57,8 @@ class CheckTemplateOwnership
         if (!$isOwner) {
             return response()->json([
                 'success' => false,
-                'message' => 'Insufficient permissions. Only template owners, administrators, or super administrators can perform this action.',
-                'required_access' => 'Owner role for this template or Admin/Super Admin role',
+                'message' => 'Insufficient permissions. Only template owners or users with administrative roles (Super Admin, Admin, Manager, Institution Admin) can perform this action.',
+                'required_access' => 'Owner role for this template or Super Admin/Admin/Manager/Institution Admin role',
                 'template_id' => $templateId,
                 'user_access' => $this->getUserTemplateRole($user, $templateId)
             ], 403);
@@ -88,7 +89,7 @@ class CheckTemplateOwnership
     }
 
     /**
-     * Check if user is Super Admin or Admin
+     * Check if user has administrative roles that can override template ownership
      *
      * @param  User  $user
      * @return bool
@@ -99,7 +100,7 @@ class CheckTemplateOwnership
             ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
             ->where('model_has_roles.model_id', $user->id)
             ->where('model_has_roles.model_type', User::class)
-            ->whereIn('roles.name', ['Super Admin', 'Admin'])
+            ->whereIn('roles.name', ['Super Admin', 'Admin', 'Manager', 'Institution Admin'])
             ->exists();
     }
 
