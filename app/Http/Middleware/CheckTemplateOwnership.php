@@ -128,7 +128,7 @@ class CheckTemplateOwnership
     }
 
     /**
-     * Get user's role for specific template (for debugging)
+     * Get user's role for specific template 
      *
      * @param  User  $user
      * @param  string  $templateId
