@@ -198,6 +198,14 @@ class UserLogbookAccessController extends BaseController
             // Load relationships for response
             $access->load(['user', 'logbookTemplate', 'logbookRole']);
 
+            // Fire event for realtime notification
+            event(new \App\Events\LogbookAccessGranted(
+                $access->user,           // User who received access
+                Auth::user(),           // User who granted access
+                $access->logbookTemplate, // Template that was shared
+                $access->logbookRole->name // Role name
+            ));
+
             return response()->json([
                 'success' => true,
                 'message' => 'User logbook access created successfully',
@@ -558,21 +566,33 @@ class UserLogbookAccessController extends BaseController
     public function destroy($id)
     {
         try {
-            $access = UserLogbookAccess::with(['user', 'logbookTemplate'])->findOrFail($id);
+            $access = UserLogbookAccess::with(['user', 'logbookTemplate', 'logbookRole'])->findOrFail($id);
             
             // Authorization is handled by middleware
+            
+            $currentUser = Auth::user();
+            
+            // Prevent owner from deleting their own access
+            if ($access->user_id === $currentUser->id && $access->logbookRole->name === 'Owner') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You cannot remove your own owner access from the template',
+                    'error_code' => 'CANNOT_REMOVE_SELF_OWNER'
+                ], 403);
+            }
             
             // Store info for audit log before deletion
             $userEmail = $access->user->email;
             $templateName = $access->logbookTemplate->name;
+            $roleName = $access->logbookRole->name;
 
-            DB::transaction(function () use ($access, $userEmail, $templateName) {
+            DB::transaction(function () use ($access, $userEmail, $templateName, $roleName) {
                 // Create audit log before deletion
                 if (class_exists('\App\Models\AuditLog')) {
                     AuditLog::create([
                         'user_id' => Auth::id(),
                         'action' => 'REVOKE_TEMPLATE_ACCESS',
-                        'description' => "Revoked access to template '{$templateName}' for user '{$userEmail}'",
+                        'description' => "Revoked '{$roleName}' access to template '{$templateName}' for user '{$userEmail}'",
                         'ip_address' => request()->ip(),
                         'user_agent' => request()->userAgent()
                     ]);
@@ -587,7 +607,9 @@ class UserLogbookAccessController extends BaseController
                 'deleted_access' => [
                     'id' => $access->id,
                     'user' => $userEmail,
-                    'template' => $templateName
+                    'template' => $templateName,
+                    'role' => $roleName,
+                    'revoked_by' => $currentUser->email
                 ]
             ]);
 
@@ -705,9 +727,17 @@ class UserLogbookAccessController extends BaseController
                         'logbook_role_id' => $userData['logbook_role_id'],
                     ]);
 
-                    $createdItem = $access->load(['user', 'logbookRole']);
+                    $createdItem = $access->load(['user', 'logbookRole', 'logbookTemplate']);
                     $createdItem->user_resolved = $userInfo;
                     $created[] = $createdItem;
+
+                    // Fire event for realtime notification
+                    event(new \App\Events\LogbookAccessGranted(
+                        $access->user,           // User who received access
+                        Auth::user(),           // User who granted access
+                        $access->logbookTemplate, // Template that was shared
+                        $access->logbookRole->name // Role name
+                    ));
                 }
 
                 // Create audit log

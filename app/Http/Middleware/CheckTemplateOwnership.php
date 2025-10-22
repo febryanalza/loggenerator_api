@@ -43,6 +43,15 @@ class CheckTemplateOwnership
         // Get template ID from request
         $templateId = $this->getTemplateIdFromRequest($request, $templateIdParam);
         
+        // If template ID not found in request, try to get it from UserLogbookAccess record (for delete operations)
+        if (!$templateId && $request->route('id')) {
+            $accessId = $request->route('id');
+            $access = UserLogbookAccess::find($accessId);
+            if ($access) {
+                $templateId = $access->logbook_template_id;
+            }
+        }
+        
         if (!$templateId) {
             return response()->json([
                 'success' => false,
@@ -78,7 +87,7 @@ class CheckTemplateOwnership
     {
         // Determine Owner role id dynamically for safety
         $ownerRoleId = DB::table('logbook_roles')->where('name', 'Owner')->value('id');
-        if (!$ownerRoleId) {
+        if ($ownerRoleId == NULL) {
             return false;
         }
 

@@ -123,6 +123,11 @@ class CheckLogbookAccess
      */
     private function userHasTemplateRole(User $user, string $templateId, string $roleName): bool
     {
+        // Special handling for Owner role - also check if user is template creator
+        if ($roleName === 'Owner' && $this->isTemplateCreator($user, $templateId)) {
+            return true;
+        }
+
         return UserLogbookAccess::where('user_id', $user->id)
             ->where('logbook_template_id', $templateId)
             ->whereHas('logbookRole', function ($q) use ($roleName) {
@@ -146,11 +151,31 @@ class CheckLogbookAccess
             return $this->userHasTemplateAccess($user, $templateId, null);
         }
 
+        // Special handling for Owner role - also check if user is template creator
+        if (in_array('Owner', $roleNames) && $this->isTemplateCreator($user, $templateId)) {
+            return true;
+        }
+
         return UserLogbookAccess::where('user_id', $user->id)
             ->where('logbook_template_id', $templateId)
             ->whereHas('logbookRole', function ($q) use ($roleNames) {
                 $q->whereIn('name', $roleNames);
             })
+            ->exists();
+    }
+
+    /**
+     * Check if user is the creator/owner of the template
+     *
+     * @param  User  $user
+     * @param  string  $templateId
+     * @return bool
+     */
+    private function isTemplateCreator(User $user, string $templateId): bool
+    {
+        return DB::table('logbook_template')
+            ->where('id', $templateId)
+            ->where('created_by', $user->id)
             ->exists();
     }
 
@@ -188,13 +213,30 @@ class CheckLogbookAccess
             return $templateId;
         }
         
-        // Special handling for logbook entry routes (e.g., PUT /logbook-entries/{id})
-        $entryId = $request->route('id');
-        if ($entryId && $this->isLogbookEntryRoute($request)) {
-            return $this->getTemplateIdFromLogbookEntry($entryId);
+        // Special handling for user-access routes (e.g., DELETE /user-access/{id})
+        $routeId = $request->route('id');
+        if ($routeId && $this->isUserAccessRoute($request)) {
+            return $this->getTemplateIdFromUserAccess($routeId);
         }
         
-        return $entryId;
+        // Special handling for logbook entry routes (e.g., PUT /logbook-entries/{id})
+        if ($routeId && $this->isLogbookEntryRoute($request)) {
+            return $this->getTemplateIdFromLogbookEntry($routeId);
+        }
+        
+        return $routeId;
+    }
+    
+    /**
+     * Check if the current route is a user-access route
+     *
+     * @param  Request  $request
+     * @return bool
+     */
+    private function isUserAccessRoute(Request $request): bool
+    {
+        $uri = $request->route()->uri ?? '';
+        return str_contains($uri, 'user-access/{id}');
     }
     
     /**
@@ -210,6 +252,22 @@ class CheckLogbookAccess
     }
     
     /**
+     * Get template ID from user access ID
+     *
+     * @param  string  $accessId
+     * @return string|null
+     */
+    private function getTemplateIdFromUserAccess(string $accessId): ?string
+    {
+        try {
+            return UserLogbookAccess::where('id', $accessId)
+                ->value('logbook_template_id');
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+    
+    /**
      * Get template ID from logbook entry ID
      *
      * @param  string  $entryId
@@ -218,7 +276,7 @@ class CheckLogbookAccess
     private function getTemplateIdFromLogbookEntry(string $entryId): ?string
     {
         try {
-            return DB::table('logbook_data')
+            return DB::table('logbook_datas')
                 ->where('id', $entryId)
                 ->value('template_id');
         } catch (\Exception $e) {

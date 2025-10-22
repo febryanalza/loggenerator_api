@@ -16,6 +16,7 @@ class LogbookTemplateController extends Controller
     /**
      * Store a newly created template in storage.
      * Uses enterprise-level transaction handling with automatic user access creation.
+     * Supports institution assignment for templates.
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
@@ -26,6 +27,7 @@ class LogbookTemplateController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
+            'institution_id' => 'nullable|uuid|exists:institutions,id',
         ]);
 
         if ($validator->fails()) {
@@ -39,10 +41,17 @@ class LogbookTemplateController extends Controller
         try {
             // Use database transaction for data consistency
             $result = DB::transaction(function () use ($request) {
+                // Determine institution_id - use from request or current user's institution
+                $institutionId = $request->institution_id;
+                if (!$institutionId && Auth::user()->institution_id) {
+                    $institutionId = Auth::user()->institution_id;
+                }
+                
                 // Create the template
                 $template = LogbookTemplate::create([
                     'name' => $request->name,
                     'description' => $request->description,
+                    'institution_id' => $institutionId,
                 ]);
 
                 // Persist ownership for traceability (created_by)
@@ -73,7 +82,8 @@ class LogbookTemplateController extends Controller
                 'success' => true,
                 'message' => 'Template created successfully with user access',
                 'data' => $result,
-                'user_access_created' => true
+                'user_access_created' => true,
+                'institution_assigned' => $result->institution_id ? true : false
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
@@ -289,6 +299,7 @@ class LogbookTemplateController extends Controller
 
     /**
      * Update the specified template.
+     * Supports updating institution assignment.
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  string  $id
@@ -300,6 +311,7 @@ class LogbookTemplateController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
+            'institution_id' => 'nullable|uuid|exists:institutions,id',
         ]);
 
         if ($validator->fails()) {
@@ -315,6 +327,12 @@ class LogbookTemplateController extends Controller
             
             $template->name = $request->name;
             $template->description = $request->description;
+            
+            // Update institution_id if provided
+            if ($request->has('institution_id')) {
+                $template->institution_id = $request->institution_id;
+            }
+            
             $template->save();
             
             // Create audit log

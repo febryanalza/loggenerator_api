@@ -114,13 +114,7 @@ class User extends Authenticatable
         return $this->hasMany(AuditLog::class);
     }
     
-    /**
-     * Get the notifications for this user.
-     */
-    public function notifications(): HasMany
-    {
-        return $this->hasMany(Notification::class);
-    }
+
 
     /**
      * Get the logbook access records for this user.

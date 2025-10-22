@@ -53,6 +53,49 @@ class FileController extends Controller
     }
     
     /**
+     * Get avatar image by filename.
+     *
+     * @param string $filename
+     * @return \Illuminate\Http\Response
+     */
+    public function getAvatarImage($filename)
+    {
+        try {
+            $path = $filename;
+            
+            // Check if file exists in avatar disk
+            if (!Storage::disk('avatar')->exists($path)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Avatar image not found'
+                ], 404);
+            }
+            
+            // Get file content
+            $file = Storage::disk('avatar')->get($path);
+            
+            // Get mime type from file extension
+            $extension = pathinfo($filename, PATHINFO_EXTENSION);
+            $mimeType = match(strtolower($extension)) {
+                'jpg', 'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'gif' => 'image/gif',
+                'webp' => 'image/webp',
+                default => 'image/jpeg'
+            };
+            
+            return response($file)
+                ->header('Content-Type', $mimeType)
+                ->header('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error retrieving avatar image: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
      * Upload a single image file.
      *
      * @param \Illuminate\Http\Request $request

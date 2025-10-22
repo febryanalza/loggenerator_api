@@ -2,70 +2,78 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Notifications\DatabaseNotification;
 
-class Notification extends Model
+class Notification extends DatabaseNotification
 {
-    use HasUuids;
-    
-    /**
-     * Indicates if the model should be timestamped.
-     *
-     * @var bool
-     */
-    public $timestamps = false;
-    
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
-    protected $fillable = [
-        'user_id',
-        'title',
-        'message',
-        'is_read',
-        'created_at'
-    ];
-    
     /**
      * The attributes that should be cast.
      *
      * @var array<string, string>
      */
     protected $casts = [
-        'is_read' => 'boolean',
-        'created_at' => 'datetime',
+        'id' => 'string',
+        'data' => 'array',
+        'read_at' => 'datetime',
     ];
     
     /**
-     * The model's default values for attributes.
-     *
-     * @var array
+     * Get the notification title from data.
      */
-    protected $attributes = [
-        'is_read' => false,
-    ];
-    
-    /**
-     * Boot function from Laravel.
-     */
-    protected static function boot()
+    public function getTitleAttribute()
     {
-        parent::boot();
-        
-        static::creating(function ($model) {
-            $model->created_at = $model->created_at ?? now();
-        });
+        return $this->data['title'] ?? '';
     }
     
     /**
-     * Get the user that owns the notification.
+     * Get the notification message from data.
      */
-    public function user(): BelongsTo
+    public function getMessageAttribute()
     {
-        return $this->belongsTo(User::class);
+        return $this->data['message'] ?? '';
+    }
+    
+    /**
+     * Check if the notification has been read.
+     */
+    public function getIsReadAttribute()
+    {
+        return !is_null($this->read_at);
+    }
+    
+    /**
+     * Scope for unread notifications.
+     */
+    public function scopeUnread($query)
+    {
+        return $query->whereNull('read_at');
+    }
+    
+    /**
+     * Scope for read notifications.
+     */
+    public function scopeRead($query)
+    {
+        return $query->whereNotNull('read_at');
+    }
+    
+    /**
+     * Mark the notification as read.
+     */
+    public function markAsRead()
+    {
+        if (is_null($this->read_at)) {
+            $this->forceFill(['read_at' => $this->freshTimestamp()])->save();
+        }
+    }
+    
+    /**
+     * Mark the notification as unread.
+     */
+    public function markAsUnread()
+    {
+        if (!is_null($this->read_at)) {
+            $this->forceFill(['read_at' => null])->save();
+        }
     }
 }

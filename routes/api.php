@@ -11,8 +11,10 @@ use App\Http\Controllers\Api\FileController;
 use App\Http\Controllers\Api\UserLogbookAccessController;
 use App\Http\Controllers\Api\UserManagementController;
 use App\Http\Controllers\Api\LogbookVerificationController;
+use App\Http\Controllers\Api\InstitutionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;
 
 /*
 |--------------------------------------------------------------------------
@@ -32,9 +34,15 @@ Route::post('/auth/google', [AuthController::class, 'googleLogin']);
 
 // Public file access
 Route::get('/images/logbook/{filename}', [FileController::class, 'getLogbookImage']);
+Route::get('/images/avatar/{filename}', [FileController::class, 'getAvatarImage']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
+    // Broadcasting authentication
+    Route::post('/broadcasting/auth', function (Request $request) {
+        return Broadcast::auth($request);
+    });
+    
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/auth/google/unlink', [AuthController::class, 'unlinkGoogle']);
@@ -42,6 +50,23 @@ Route::middleware('auth:sanctum')->group(function () {
     // User profile
     Route::get('/user', function (Request $request) {
         return $request->user();
+    });
+    
+    // User profile management
+    Route::get('/profile', [\App\Http\Controllers\Api\ProfileController::class, 'show']);
+    Route::put('/profile', [\App\Http\Controllers\Api\ProfileController::class, 'update']);
+    Route::delete('/profile/picture', [\App\Http\Controllers\Api\ProfileController::class, 'deleteProfilePicture']);
+    
+    // Institution routes - Public access for selection (name and id only)
+    Route::get('/institutions', [\App\Http\Controllers\Api\InstitutionController::class, 'index']);
+    
+    // Institution routes - Admin management (full CRUD operations)
+    Route::middleware('role:Super Admin,Admin,Manager')->group(function () {
+        Route::get('/institutions/details', [\App\Http\Controllers\Api\InstitutionController::class, 'getAllDetails']);
+        Route::get('/institutions/{id}', [\App\Http\Controllers\Api\InstitutionController::class, 'show']);
+        Route::post('/institutions', [\App\Http\Controllers\Api\InstitutionController::class, 'store']);
+        Route::put('/institutions/{id}', [\App\Http\Controllers\Api\InstitutionController::class, 'update']);
+        Route::delete('/institutions/{id}', [\App\Http\Controllers\Api\InstitutionController::class, 'destroy']);
     });
     
     // Logbook Template routes - Basic access for authenticated users
@@ -68,7 +93,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user-access/{id}', [UserLogbookAccessController::class, 'show']);
     
     // User Logbook Access routes - Modification operations (Template Owner only)
-    Route::middleware('template.owner')->group(function () {
+    Route::middleware('logbook.access:Owner')->group(function () {
         Route::post('/user-access', [UserLogbookAccessController::class, 'store']);
         Route::post('/user-access/bulk', [UserLogbookAccessController::class, 'bulkStore']);
         Route::put('/user-access/{id}', [UserLogbookAccessController::class, 'update']);
@@ -136,10 +161,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/roles/revoke-permissions', [RoleController::class, 'revokePermissions']);
     });
     
-    // Notification routes - Manager+ role
+    // Notification routes - All authenticated users can view their notifications
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/stats', [NotificationController::class, 'stats']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+    
+    // Notification management - Admin+ role only
     Route::middleware('role:Super Admin,Admin,Manager')->group(function () {
-        Route::post('/notifications', [NotificationController::class, 'store']);
-        Route::post('/notifications/send-to-users', [NotificationController::class, 'sendToMultipleUsers']);
+        Route::post('/notifications/send', [NotificationController::class, 'send']);
         Route::post('/notifications/send-to-role', [NotificationController::class, 'sendToRole']);
     });
     
