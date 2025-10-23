@@ -32,6 +32,16 @@ use Illuminate\Support\Facades\Broadcast;
 */
 
 // Public routes
+// Health check endpoint
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'message' => 'LogGenerator API is running',
+        'timestamp' => now()->toIso8601String(),
+        'version' => config('app.version', '1.0.0'),
+    ]);
+});
+
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/auth/google', [AuthController::class, 'googleLogin']);
