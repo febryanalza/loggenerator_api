@@ -22,8 +22,13 @@ return new class extends Migration
             $table->timestamp('created_at')->useCurrent();
             
             $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
-            $table->index(['user_id']);
-            $table->index(['action']);
+            
+            // Index untuk mempercepat query
+            $table->index(['user_id']); // Filter by user
+            $table->index(['action']); // Filter by action type
+            $table->index(['created_at']); // Sorting by date (most common query)
+            $table->index(['user_id', 'created_at']); // Composite: user activity timeline
+            $table->index(['action', 'created_at']); // Composite: action timeline
         });
     }
 

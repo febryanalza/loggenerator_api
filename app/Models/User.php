@@ -12,6 +12,24 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Traits\HasRoles;
 
+/**
+ * User Model with Spatie Permission Support
+ * 
+ * @property-read \Illuminate\Database\Eloquent\Collection|\Spatie\Permission\Models\Role[] $roles
+ * @property-read \Illuminate\Database\Eloquent\Collection|\Spatie\Permission\Models\Permission[] $permissions
+ * 
+ * @method \Illuminate\Database\Eloquent\Relations\BelongsToMany roles()
+ * @method \Illuminate\Database\Eloquent\Relations\BelongsToMany permissions()
+ * @method array getRoleNames()
+ * @method array getPermissionNames()
+ * @method bool hasRole(string|array|\Spatie\Permission\Contracts\Role $roles, string $guard = null)
+ * @method bool hasAnyRole(string|array|\Spatie\Permission\Contracts\Role ...$roles)
+ * @method bool hasAllRoles(string|array|\Spatie\Permission\Contracts\Role $roles, string $guard = null)
+ * @method bool hasPermissionTo(string|int|\Spatie\Permission\Contracts\Permission $permission, string $guardName = null)
+ * @method $this assignRole(string|array|\Spatie\Permission\Contracts\Role ...$roles)
+ * @method $this syncRoles(string|array|\Spatie\Permission\Contracts\Role ...$roles)
+ * @method $this removeRole(string|array|\Spatie\Permission\Contracts\Role $role)
+ */
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
@@ -200,6 +218,16 @@ class User extends Authenticatable
     public function isInstitutionAdmin(): bool
     {
         return $this->hasRole('Institution Admin');
+    }
+
+    /**
+     * Check if user has any admin role
+     * This method helps avoid linter warnings and makes the code more explicit
+     */
+    public function isAdmin(): bool
+    {
+        $adminRoles = ['Admin', 'Super Admin', 'Manager', 'Institution Admin'];
+        return $this->hasAnyRole($adminRoles);
     }
 
     /**

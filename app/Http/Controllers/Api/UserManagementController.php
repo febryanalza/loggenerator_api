@@ -179,8 +179,53 @@ class UserManagementController extends Controller
         }
 
         try {
-            $perPage = $request->get('per_page', 15);
+            // Allow fetching all users by setting per_page=all or per_page=0
+            // Default pagination is 50 users per page (increased from 15)
+            $perPage = $request->get('per_page', 50);
+            
+            if ($perPage === 'all' || $perPage == 0) {
+                // Get all users without pagination
+                $allUsers = User::with(['roles', 'institution'])
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+
+                $userData = $allUsers->map(function ($user) {
+                    $userData = [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'phone_number' => $user->phone_number,
+                        'status' => $user->status,
+                        'roles' => $user->roles->pluck('name')->toArray(),
+                        'created_at' => $user->created_at,
+                        'last_login' => $user->last_login
+                    ];
+
+                    // Add institution information if user belongs to one
+                    if ($user->institution) {
+                        $userData['institution'] = [
+                            'id' => $user->institution->id,
+                            'name' => $user->institution->name,
+                            'description' => $user->institution->description
+                        ];
+                    }
+
+                    return $userData;
+                });
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'All users retrieved successfully',
+                    'data' => [
+                        'users' => $userData,
+                        'total' => $allUsers->count()
+                    ]
+                ]);
+            }
+            
+            // Paginated results
             $users = User::with(['roles', 'institution'])
+                ->orderBy('created_at', 'desc')
                 ->paginate($perPage);
 
             $userData = $users->map(function ($user) {
@@ -190,7 +235,7 @@ class UserManagementController extends Controller
                     'email' => $user->email,
                     'phone_number' => $user->phone_number,
                     'status' => $user->status,
-                    'roles' => $user->roles->pluck('name'),
+                    'roles' => $user->roles->pluck('name')->toArray(),
                     'created_at' => $user->created_at,
                     'last_login' => $user->last_login
                 ];

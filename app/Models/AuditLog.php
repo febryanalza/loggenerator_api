@@ -18,6 +18,15 @@ class AuditLog extends Model
     public $timestamps = false;
     
     /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'created_at' => 'datetime',
+    ];
+    
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>

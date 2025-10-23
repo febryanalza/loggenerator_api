@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \App\Http\Middleware\CheckPermission::class,
             'logbook.access' => \App\Http\Middleware\CheckLogbookAccess::class,
             'template.owner' => \App\Http\Middleware\CheckTemplateOwnership::class,
+            'admin' => \App\Http\Middleware\AdminMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

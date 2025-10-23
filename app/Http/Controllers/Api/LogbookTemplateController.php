@@ -118,6 +118,54 @@ class LogbookTemplateController extends Controller
     }
 
     /**
+     * Display all templates with creator info and entry count for admin.
+     * Includes: creator name, created date, and total logbook entries.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAllTemplatesForAdmin()
+    {
+        try {
+            $templates = LogbookTemplate::select([
+                    'logbook_template.id',
+                    'logbook_template.name',
+                    'logbook_template.description',
+                    'logbook_template.created_at',
+                    'logbook_template.updated_at',
+                    'users.name as creator_name',
+                    'users.email as creator_email',
+                    DB::raw('COUNT(DISTINCT logbook_datas.id) as entries_count')
+                ])
+                ->leftJoin('users', 'logbook_template.created_by', '=', 'users.id')
+                ->leftJoin('logbook_datas', 'logbook_template.id', '=', 'logbook_datas.template_id')
+                ->groupBy([
+                    'logbook_template.id',
+                    'logbook_template.name',
+                    'logbook_template.description',
+                    'logbook_template.created_at',
+                    'logbook_template.updated_at',
+                    'users.name',
+                    'users.email'
+                ])
+                ->orderBy('logbook_template.created_at', 'desc')
+                ->get();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Templates retrieved successfully',
+                'data' => $templates,
+                'count' => $templates->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch templates for admin',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Display templates accessible by the authenticated user.
      * Joins logbook_template with user_logbook_access to get user's accessible templates.
      *

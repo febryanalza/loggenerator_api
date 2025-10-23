@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AdminAuthController;
+use App\Http\Controllers\Api\AuditTrailController;
 use App\Http\Controllers\Api\LogbookTemplateController;
 use App\Http\Controllers\Api\LogbookFieldController;
 use App\Http\Controllers\Api\LogbookDataController;
@@ -12,6 +14,8 @@ use App\Http\Controllers\Api\UserLogbookAccessController;
 use App\Http\Controllers\Api\UserManagementController;
 use App\Http\Controllers\Api\LogbookVerificationController;
 use App\Http\Controllers\Api\InstitutionController;
+use App\Http\Controllers\Api\WebsiteController;
+use App\Http\Controllers\Web\DashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Broadcast;
@@ -32,9 +36,15 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/auth/google', [AuthController::class, 'googleLogin']);
 
+// Admin Authentication API (No CSRF required - for Postman/API clients)
+Route::post('/admin/login', [AdminAuthController::class, 'login']);
+
 // Public file access
 Route::get('/images/logbook/{filename}', [FileController::class, 'getLogbookImage']);
 Route::get('/images/avatar/{filename}', [FileController::class, 'getAvatarImage']);
+
+// Public dashboard stats (for testing)
+Route::get('/dashboard/public', [DashboardController::class, 'index'])->name('api.dashboard.public');
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -46,6 +56,29 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/auth/google/unlink', [AuthController::class, 'unlinkGoogle']);
+    
+    // Admin Auth & Dashboard APIs (Bearer Token required)
+    Route::prefix('admin')->middleware('admin')->group(function () {
+        Route::post('/logout', [AdminAuthController::class, 'logout']);
+        Route::get('/me', [AdminAuthController::class, 'me']);
+        Route::get('/stats', [DashboardController::class, 'getStats']);
+        Route::get('/user-registrations', [DashboardController::class, 'getUserRegistrations']);
+        Route::get('/logbook-activity', [DashboardController::class, 'getLogbookActivity']);
+        Route::get('/recent-activity', [DashboardController::class, 'getRecentActivity']);
+        
+        // Audit Trail APIs
+        Route::prefix('audit-trail')->group(function () {
+            Route::get('/statistics', [AuditTrailController::class, 'getStatistics']);
+            Route::get('/logs', [AuditTrailController::class, 'getLogs']);
+            Route::get('/stream', [AuditTrailController::class, 'streamLogs']);
+            Route::get('/action-types', [AuditTrailController::class, 'getActionTypes']);
+            Route::get('/export', [AuditTrailController::class, 'exportLogs']);
+        });
+    });
+    
+    // Dashboard API routes
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('api.dashboard');
+    Route::get('/dashboard/stats', [DashboardController::class, 'index'])->name('api.dashboard.stats');
     
     // User profile
     Route::get('/user', function (Request $request) {
@@ -71,6 +104,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Logbook Template routes - Basic access for authenticated users
     Route::get('/templates', [LogbookTemplateController::class, 'index']);
+    Route::get('/templates/admin/all', [LogbookTemplateController::class, 'getAllTemplatesForAdmin']);
     Route::get('/templates/user', [LogbookTemplateController::class, 'getUserTemplates']);
     Route::get('/templates/user/permissions', [LogbookTemplateController::class, 'getUserTemplatesWithPermissions']);
     Route::get('/templates/user/{id}', [LogbookTemplateController::class, 'getUserTemplate']);
@@ -195,4 +229,12 @@ Route::middleware('auth:sanctum')->group(function () {
         // Route::delete('/admin/purge-data', [SystemController::class, 'purgeData']);
         // Route::post('/admin/reset-permissions', [SystemController::class, 'resetPermissions']);
     });
+});
+
+// Website Data Routes (Public - No authentication required)
+Route::prefix('website')->group(function () {
+    Route::get('/homepage-data', [WebsiteController::class, 'getHomepageData']);
+    Route::get('/stats', [WebsiteController::class, 'getStats']);
+    Route::get('/company-info', [WebsiteController::class, 'getCompanyInfo']);
+    Route::get('/features', [WebsiteController::class, 'getFeatures']);
 });
