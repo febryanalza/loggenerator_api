@@ -71,22 +71,7 @@ class UserManagementController extends Controller
 
             // Handle institution_id for Institution Admin role
             if ($roleName === 'Institution Admin') {
-                if (!$request->has('institution_id') || empty($request->institution_id)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Institution ID is required for Institution Admin role'
-                    ], 422);
-                }
-                
-                // Verify institution exists
-                $institution = \App\Models\Institution::find($request->institution_id);
-                if (!$institution) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Institution not found'
-                    ], 422);
-                }
-                
+                // Validation is now handled by CreateUserRequest
                 $userData['institution_id'] = $request->institution_id;
             }
 
@@ -98,7 +83,13 @@ class UserManagementController extends Controller
 
             // Get current user role for audit log
             $currentUserRole = $currentUser->getRoleNames()->first();
-            $institutionText = $roleName === 'Institution Admin' ? " for institution {$institution->name}" : '';
+            
+            // Get institution name if Institution Admin
+            $institutionText = '';
+            if ($roleName === 'Institution Admin' && $request->institution_id) {
+                $institution = \App\Models\Institution::find($request->institution_id);
+                $institutionText = $institution ? " for institution {$institution->name}" : '';
+            }
 
             // Create audit log
             \App\Models\AuditLog::create([
@@ -356,6 +347,107 @@ class UserManagementController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update user role.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a user
+     * Only accessible by Super Admin and Admin
+     *
+     * @param Request $request
+     * @param string $userId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function deleteUser(Request $request, string $userId)
+    {
+        $currentUser = $request->user();
+        
+        // Verify that the authenticated user has permission
+        if (!$currentUser->hasAnyRole(['Super Admin', 'Admin'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only Super Admin and Admin can delete users.'
+            ], 403);
+        }
+
+        try {
+            $userToDelete = User::findOrFail($userId);
+
+            // Prevent user from deleting themselves
+            if ($userToDelete->id === $currentUser->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You cannot delete your own account.'
+                ], 422);
+            }
+
+            // Admin cannot delete Super Admin
+            if ($currentUser->hasRole('Admin') && $userToDelete->hasRole('Super Admin')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Admin cannot delete Super Admin users.'
+                ], 403);
+            }
+
+            // Admin cannot delete other Admins
+            if ($currentUser->hasRole('Admin') && $userToDelete->hasRole('Admin')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Admin cannot delete other Admin users.'
+                ], 403);
+            }
+
+            $userName = $userToDelete->name;
+            $userEmail = $userToDelete->email;
+            $userRoles = $userToDelete->roles->pluck('name')->toArray();
+
+            // Delete user (this will also cascade delete related data based on foreign key constraints)
+            $userToDelete->delete();
+
+            // Create audit log
+            \App\Models\AuditLog::create([
+                'user_id' => $currentUser->id,
+                'action' => 'DELETE_USER',
+                'description' => "{$currentUser->getRoleNames()->first()} deleted user '{$userName}' ({$userEmail}) with role(s): " . implode(', ', $userRoles),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'details' => json_encode([
+                    'deleted_user_id' => $userId,
+                    'deleted_user_name' => $userName,
+                    'deleted_user_email' => $userEmail,
+                    'deleted_user_roles' => $userRoles
+                ])
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User deleted successfully',
+                'data' => [
+                    'deleted_user' => [
+                        'id' => $userId,
+                        'name' => $userName,
+                        'email' => $userEmail,
+                        'roles' => $userRoles
+                    ]
+                ]
+            ]);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not found.'
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Failed to delete user: ' . $e->getMessage(), [
+                'admin_user_id' => $request->user()->id,
+                'target_user_id' => $userId,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete user. Please try again.'
             ], 500);
         }
     }

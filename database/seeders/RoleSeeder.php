@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
 
 class RoleSeeder extends Seeder
 {
@@ -13,26 +13,19 @@ class RoleSeeder extends Seeder
     public function run(): void
     {
         $roles = [
-            [
-                'name' => 'Admin',
-                'guard_name' => 'web',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'name' => 'Manager',
-                'guard_name' => 'web',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'name' => 'User',
-                'guard_name' => 'web',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
+            'Super Admin',
+            'Admin',
+            'Manager',
+            'Institution Admin',
+            'User',
         ];
 
-        DB::table('roles')->insert($roles);
+        foreach ($roles as $roleName) {
+            Role::firstOrCreate(
+                ['name' => $roleName, 'guard_name' => 'web']
+            );
+        }
+        
+        $this->command->info('Roles seeded successfully!');
     }
 }

@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\LogbookData;
 use App\Models\LogbookTemplate;
-use App\Models\User;
 use App\Models\UserLogbookAccess;
 use App\Models\LogbookRole;
 use App\Models\AuditLog;
@@ -16,17 +16,111 @@ use Illuminate\Support\Facades\Validator;
 class LogbookVerificationController extends Controller
 {
     /**
-     * Update logbook verification status
-     * New workflow: Owner verifies first, then Supervisor, then Institution Admin can assess
+     * Initialize controller with middleware.
+     */
+    public function __construct()
+    {
+        // Middleware is applied in routes file
+    }
+
+    /**
+     * Get all logbook data entries for verification (Supervisor only)
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function updateVerificationStatus(Request $request)
+    public function getDataForVerification(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'template_id' => 'required|uuid|exists:logbook_template,id',
-            'has_been_verified_logbook' => 'required|boolean'
+            'verified_status' => 'sometimes|in:verified,unverified,all',
+            'per_page' => 'sometimes|integer|min:5|max:100'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation Error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $currentUser = $request->user();
+            $templateId = $request->template_id;
+            $verifiedStatus = $request->get('verified_status', 'all');
+            $perPage = $request->get('per_page', 15);
+
+            // Check if user is a supervisor for this template
+            if (!$this->isSupervisorOfTemplate($currentUser->id, $templateId)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. Only supervisors can access verification data.'
+                ], 403);
+            }
+
+            // Build query
+            $query = LogbookData::with(['writer:id,name,email', 'verifier:id,name,email', 'template:id,name'])
+                ->where('template_id', $templateId);
+
+            // Filter by verification status
+            if ($verifiedStatus === 'verified') {
+                $query->verified();
+            } elseif ($verifiedStatus === 'unverified') {
+                $query->unverified();
+            }
+
+            // Order by creation date (newest first)
+            $query->orderBy('created_at', 'desc');
+
+            $data = $query->paginate($perPage);
+
+            // Log activity
+            AuditLog::create([
+                'user_id' => $currentUser->id,
+                'action' => 'view_verification_data',
+                'model_type' => 'LogbookTemplate',
+                'model_id' => $templateId,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'details' => json_encode([
+                    'template_id' => $templateId,
+                    'verified_status' => $verifiedStatus,
+                    'total_entries' => $data->total()
+                ])
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Verification data retrieved successfully',
+                'data' => $data
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error getting verification data: ' . $e->getMessage(), [
+                'user_id' => $request->user()->id ?? 'unknown',
+                'template_id' => $request->template_id ?? 'unknown',
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve verification data'
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify a specific logbook data entry (Supervisor only)
+     *
+     * @param Request $request
+     * @param string $dataId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function verifyData(Request $request, string $dataId)
+    {
+        $validator = Validator::make($request->all(), [
+            'verification_notes' => 'sometimes|string|max:1000'
         ]);
 
         if ($validator->fails()) {
@@ -41,211 +135,169 @@ class LogbookVerificationController extends Controller
             DB::beginTransaction();
 
             $currentUser = $request->user();
-            $templateId = $request->template_id;
-            $hasBeenVerifiedLogbook = $request->has_been_verified_logbook;
+            
+            // Get the logbook data entry
+            $logbookData = LogbookData::with(['template', 'writer'])->findOrFail($dataId);
 
-            // Get the logbook template
-            $template = LogbookTemplate::findOrFail($templateId);
-
-            // Check if current user has access to this template and get their role
-            $currentUserAccess = UserLogbookAccess::where('user_id', $currentUser->id)
-                ->where('logbook_template_id', $templateId)
-                ->with('logbookRole')
-                ->first();
-
-            if (!$currentUserAccess) {
+            // Check if user is a supervisor for this template
+            if (!$this->isSupervisorOfTemplate($currentUser->id, $logbookData->template_id)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'You do not have access to this logbook template.'
+                    'message' => 'Unauthorized. Only supervisors can verify data entries.'
                 ], 403);
             }
 
-            $currentUserRole = $currentUserAccess->logbookRole->name;
-
-            // New logic: Only Owner and Supervisor can verify, but in sequence
-            // Owner must verify first, then Supervisor
-            if (!in_array($currentUserRole, ['Owner', 'Supervisor'])) {
+            // Check if data is already verified
+            if ($logbookData->isVerified()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized. Only Owner and Supervisor can update verification status.'
-                ], 403);
+                    'message' => 'Data entry is already verified.'
+                ], 400);
             }
 
-            // Get Owner and Supervisor access records for this template
-            $ownerAccess = UserLogbookAccess::where('logbook_template_id', $templateId)
-                ->whereHas('logbookRole', function($query) {
-                    $query->where('name', 'Owner');
-                })
-                ->first();
+            // Verify the data
+            $logbookData->markAsVerified(
+                $currentUser->id,
+                $request->get('verification_notes')
+            );
 
-            $supervisorAccess = UserLogbookAccess::where('logbook_template_id', $templateId)
-                ->whereHas('logbookRole', function($query) {
-                    $query->where('name', 'Supervisor');
-                })
-                ->first();
-
-            // Sequential verification logic
-            if ($currentUserRole === 'Owner') {
-                // Owner can always verify
-                $currentUserAccess->has_been_verified_logbook = $hasBeenVerifiedLogbook;
-                $currentUserAccess->save();
-                $verifiedRole = 'Owner';
-                
-            } else if ($currentUserRole === 'Supervisor') {
-                // Supervisor can only verify if Owner has already verified
-                if ($ownerAccess && !$ownerAccess->has_been_verified_logbook) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Supervisor cannot verify until Owner has verified first.'
-                    ], 422);
-                }
-                
-                $currentUserAccess->has_been_verified_logbook = $hasBeenVerifiedLogbook;
-                $currentUserAccess->save();
-                $verifiedRole = 'Supervisor';
-            }
-
-            // Create audit log
+            // Log activity
             AuditLog::create([
                 'user_id' => $currentUser->id,
-                'action' => 'UPDATE_LOGBOOK_VERIFICATION',
-                'table_name' => 'user_logbook_access',
-                'record_id' => $currentUserAccess->id,
-                'old_values' => ['has_been_verified_logbook' => !$hasBeenVerifiedLogbook],
-                'new_values' => ['has_been_verified_logbook' => $hasBeenVerifiedLogbook],
+                'action' => 'verify_data',
+                'model_type' => 'LogbookData',
+                'model_id' => $dataId,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
-                'description' => "{$verifiedRole} {$currentUser->name} " . ($hasBeenVerifiedLogbook ? 'verified' : 'unverified') . " logbook template: {$template->name}"
+                'details' => json_encode([
+                    'template_id' => $logbookData->template_id,
+                    'writer_id' => $logbookData->writer_id,
+                    'verification_notes' => $request->get('verification_notes'),
+                    'verified_at' => now()
+                ])
             ]);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Logbook verification status updated successfully',
+                'message' => 'Data entry verified successfully',
                 'data' => [
-                    'template_id' => $template->id,
-                    'template_name' => $template->name,
-                    'user_role' => $verifiedRole,
-                    'user_name' => $currentUser->name,
-                    'has_been_verified_logbook' => $hasBeenVerifiedLogbook,
-                    'updated_at' => $currentUserAccess->updated_at
+                    'id' => $logbookData->id,
+                    'is_verified' => $logbookData->is_verified,
+                    'verified_by' => $logbookData->verified_by,
+                    'verified_at' => $logbookData->verified_at,
+                    'verification_notes' => $logbookData->verification_notes
                 ]
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Failed to update verification status: ' . $e->getMessage());
+            DB::rollBack();
+            
+            Log::error('Error verifying data: ' . $e->getMessage(), [
+                'user_id' => $request->user()->id ?? 'unknown',
+                'data_id' => $dataId,
+                'trace' => $e->getTraceAsString()
+            ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update verification status.',
-                'error' => $e->getMessage()
+                'message' => 'Failed to verify data entry'
             ], 500);
         }
     }
 
     /**
-     * Get logbook verification status for a template
-     * Shows the sequential verification status: Owner -> Supervisor -> Assessment ready
+     * Unverify a specific logbook data entry (Supervisor only)
      *
      * @param Request $request
-     * @param string $templateId
+     * @param string $dataId
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getVerificationStatus(Request $request, string $templateId)
+    public function unverifyData(Request $request, string $dataId)
     {
         try {
+            DB::beginTransaction();
+
             $currentUser = $request->user();
+            
+            // Get the logbook data entry
+            $logbookData = LogbookData::with(['template', 'writer'])->findOrFail($dataId);
 
-            // Check if user has access to this template
-            $userAccess = UserLogbookAccess::where('user_id', $currentUser->id)
-                ->where('logbook_template_id', $templateId)
-                ->exists();
-
-            if (!$userAccess) {
+            // Check if user is a supervisor for this template
+            if (!$this->isSupervisorOfTemplate($currentUser->id, $logbookData->template_id)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'You do not have access to this template.'
+                    'message' => 'Unauthorized. Only supervisors can unverify data entries.'
                 ], 403);
             }
 
-            // Get template info
-            $template = LogbookTemplate::findOrFail($templateId);
+            // Check if data is not verified
+            if (!$logbookData->isVerified()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data entry is not verified.'
+                ], 400);
+            }
 
-            // Get Owner and Supervisor verification status specifically
-            $ownerStatus = UserLogbookAccess::where('logbook_template_id', $templateId)
-                ->whereHas('logbookRole', function($query) {
-                    $query->where('name', 'Owner');
-                })
-                ->with(['user', 'logbookRole'])
-                ->first();
+            // Unverify the data
+            $logbookData->markAsUnverified();
 
-            $supervisorStatus = UserLogbookAccess::where('logbook_template_id', $templateId)
-                ->whereHas('logbookRole', function($query) {
-                    $query->where('name', 'Supervisor');
-                })
-                ->with(['user', 'logbookRole'])
-                ->first();
+            // Log activity
+            AuditLog::create([
+                'user_id' => $currentUser->id,
+                'action' => 'unverify_data',
+                'model_type' => 'LogbookData',
+                'model_id' => $dataId,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'details' => json_encode([
+                    'template_id' => $logbookData->template_id,
+                    'writer_id' => $logbookData->writer_id,
+                    'unverified_at' => now()
+                ])
+            ]);
 
-            // Determine if assessment is ready (both Owner and Supervisor verified)
-            $ownerVerified = $ownerStatus ? $ownerStatus->has_been_verified_logbook : false;
-            $supervisorVerified = $supervisorStatus ? $supervisorStatus->has_been_verified_logbook : false;
-            $assessmentReady = $ownerVerified && $supervisorVerified;
-
-            $verificationData = [
-                'template_id' => $template->id,
-                'template_name' => $template->name,
-                'has_been_assessed' => $template->has_been_assessed,
-                'owner_verification' => $ownerStatus ? [
-                    'user_id' => $ownerStatus->user->id,
-                    'user_name' => $ownerStatus->user->name,
-                    'user_email' => $ownerStatus->user->email,
-                    'has_been_verified_logbook' => $ownerStatus->has_been_verified_logbook,
-                    'updated_at' => $ownerStatus->updated_at
-                ] : null,
-                'supervisor_verification' => $supervisorStatus ? [
-                    'user_id' => $supervisorStatus->user->id,
-                    'user_name' => $supervisorStatus->user->name,
-                    'user_email' => $supervisorStatus->user->email,
-                    'has_been_verified_logbook' => $supervisorStatus->has_been_verified_logbook,
-                    'updated_at' => $supervisorStatus->updated_at
-                ] : null,
-                'assessment_ready' => $assessmentReady,
-                'verification_workflow' => [
-                    'step_1_owner' => $ownerVerified ? 'completed' : 'pending',
-                    'step_2_supervisor' => $supervisorVerified ? 'completed' : ($ownerVerified ? 'ready' : 'waiting_for_owner'),
-                    'step_3_assessment' => $template->has_been_assessed ? 'completed' : ($assessmentReady ? 'ready' : 'waiting_for_verification')
-                ]
-            ];
+            DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Logbook verification status retrieved successfully',
-                'data' => $verificationData
+                'message' => 'Data entry unverified successfully',
+                'data' => [
+                    'id' => $logbookData->id,
+                    'is_verified' => $logbookData->is_verified,
+                    'verified_by' => $logbookData->verified_by,
+                    'verified_at' => $logbookData->verified_at,
+                    'verification_notes' => $logbookData->verification_notes
+                ]
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Failed to get verification status: ' . $e->getMessage());
+            DB::rollBack();
+            
+            Log::error('Error unverifying data: ' . $e->getMessage(), [
+                'user_id' => $request->user()->id ?? 'unknown',
+                'data_id' => $dataId,
+                'trace' => $e->getTraceAsString()
+            ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to get verification status.',
-                'error' => $e->getMessage()
+                'message' => 'Failed to unverify data entry'
             ], 500);
         }
     }
 
     /**
-     * Update assessment status for template (Institution Admin only)
+     * Get verification statistics for a template (Supervisor only)
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function updateAssessmentStatus(Request $request)
+    public function getVerificationStats(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'template_id' => 'required|uuid|exists:logbook_template,id',
-            'has_been_assessed' => 'required|boolean'
+            'template_id' => 'required|uuid|exists:logbook_template,id'
         ]);
 
         if ($validator->fails()) {
@@ -259,91 +311,171 @@ class LogbookVerificationController extends Controller
         try {
             $currentUser = $request->user();
             $templateId = $request->template_id;
-            $hasBeenAssessed = $request->has_been_assessed;
 
-            // Check if user is Institution Admin
-            if (!$currentUser->hasRole('Institution Admin')) {
+            // Check if user is a supervisor for this template
+            if (!$this->isSupervisorOfTemplate($currentUser->id, $templateId)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized. Only Institution Admin can update assessment status.'
+                    'message' => 'Unauthorized. Only supervisors can view verification statistics.'
                 ], 403);
             }
 
-            $template = LogbookTemplate::find($templateId);
+            $totalEntries = LogbookData::where('template_id', $templateId)->count();
+            $verifiedEntries = LogbookData::where('template_id', $templateId)->verified()->count();
+            $unverifiedEntries = LogbookData::where('template_id', $templateId)->unverified()->count();
+            
+            $verificationPercentage = $totalEntries > 0 ? round(($verifiedEntries / $totalEntries) * 100, 2) : 0;
 
-            // Check if Institution Admin belongs to the same institution as the template
-            if ($template->institution_id && $currentUser->institution_id !== $template->institution_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized. You can only assess templates from your institution.'
-                ], 403);
-            }
-
-            // If setting to true, check if both Owner and Supervisor have verified logbook
-            if ($hasBeenAssessed) {
-                // Check Owner verification
-                $ownerVerified = UserLogbookAccess::where('logbook_template_id', $templateId)
-                    ->whereHas('logbookRole', function($query) {
-                        $query->where('name', 'Owner');
-                    })
-                    ->where('has_been_verified_logbook', true)
-                    ->exists();
-
-                // Check Supervisor verification
-                $supervisorVerified = UserLogbookAccess::where('logbook_template_id', $templateId)
-                    ->whereHas('logbookRole', function($query) {
-                        $query->where('name', 'Supervisor');
-                    })
-                    ->where('has_been_verified_logbook', true)
-                    ->exists();
-
-                if (!$ownerVerified || !$supervisorVerified) {
-                    $missingVerifications = [];
-                    if (!$ownerVerified) $missingVerifications[] = 'Owner';
-                    if (!$supervisorVerified) $missingVerifications[] = 'Supervisor';
-
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Cannot assess template. The following roles have not verified the logbook yet: ' . implode(', ', $missingVerifications),
-                        'missing_verifications' => $missingVerifications
-                    ], 422);
-                }
-            }
-
-            // Update assessment status
-            $template->update([
-                'has_been_assessed' => $hasBeenAssessed
-            ]);
-
-            // Create audit log
-            \App\Models\AuditLog::create([
-                'user_id' => $currentUser->id,
-                'action' => 'UPDATE_ASSESSMENT',
-                'description' => "Updated assessment status for template '{$template->name}' to " . ($hasBeenAssessed ? 'assessed' : 'not assessed'),
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent()
-            ]);
+            // Recent verification activity (last 7 days)
+            $recentVerifications = LogbookData::where('template_id', $templateId)
+                ->where('verified_at', '>=', now()->subDays(7))
+                ->verified()
+                ->count();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Assessment status updated successfully',
+                'message' => 'Verification statistics retrieved successfully',
                 'data' => [
-                    'template_id' => $templateId,
-                    'template_name' => $template->name,
-                    'has_been_assessed' => $hasBeenAssessed,
-                    'assessed_by' => $currentUser->name,
-                    'updated_at' => $template->updated_at
+                    'total_entries' => $totalEntries,
+                    'verified_entries' => $verifiedEntries,
+                    'unverified_entries' => $unverifiedEntries,
+                    'verification_percentage' => $verificationPercentage,
+                    'recent_verifications' => $recentVerifications
                 ]
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Failed to update assessment status: ' . $e->getMessage());
+            Log::error('Error getting verification stats: ' . $e->getMessage(), [
+                'user_id' => $request->user()->id ?? 'unknown',
+                'template_id' => $request->template_id ?? 'unknown',
+                'trace' => $e->getTraceAsString()
+            ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update assessment status.',
-                'error' => $e->getMessage()
+                'message' => 'Failed to retrieve verification statistics'
             ], 500);
         }
+    }
+
+    /**
+     * Bulk verify multiple data entries (Supervisor only)
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function bulkVerifyData(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'data_ids' => 'required|array|min:1',
+            'data_ids.*' => 'required|uuid|exists:logbook_datas,id',
+            'verification_notes' => 'sometimes|string|max:1000'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation Error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $currentUser = $request->user();
+            $dataIds = $request->data_ids;
+            $verificationNotes = $request->get('verification_notes');
+
+            $verifiedCount = 0;
+            $errors = [];
+
+            foreach ($dataIds as $dataId) {
+                try {
+                    $logbookData = LogbookData::findOrFail($dataId);
+
+                    // Check if user is a supervisor for this template
+                    if (!$this->isSupervisorOfTemplate($currentUser->id, $logbookData->template_id)) {
+                        $errors[] = "Unauthorized to verify data entry: {$dataId}";
+                        continue;
+                    }
+
+                    // Skip if already verified
+                    if ($logbookData->isVerified()) {
+                        $errors[] = "Data entry already verified: {$dataId}";
+                        continue;
+                    }
+
+                    // Verify the data
+                    $logbookData->markAsVerified($currentUser->id, $verificationNotes);
+                    $verifiedCount++;
+
+                    // Log activity for each verification
+                    AuditLog::create([
+                        'user_id' => $currentUser->id,
+                        'action' => 'bulk_verify_data',
+                        'model_type' => 'LogbookData',
+                        'model_id' => $dataId,
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                        'details' => json_encode([
+                            'template_id' => $logbookData->template_id,
+                            'verification_notes' => $verificationNotes,
+                            'verified_at' => now()
+                        ])
+                    ]);
+
+                } catch (\Exception $e) {
+                    $errors[] = "Failed to verify data entry {$dataId}: " . $e->getMessage();
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully verified {$verifiedCount} data entries",
+                'data' => [
+                    'verified_count' => $verifiedCount,
+                    'total_requested' => count($dataIds),
+                    'errors' => $errors
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Error bulk verifying data: ' . $e->getMessage(), [
+                'user_id' => $request->user()->id ?? 'unknown',
+                'data_ids' => $request->data_ids ?? [],
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to bulk verify data entries'
+            ], 500);
+        }
+    }
+
+    /**
+     * Check if user is a supervisor of a specific template
+     *
+     * @param string $userId
+     * @param string $templateId
+     * @return bool
+     */
+    private function isSupervisorOfTemplate(string $userId, string $templateId): bool
+    {
+        $supervisorRole = LogbookRole::where('name', 'Supervisor')->first();
+        
+        if (!$supervisorRole) {
+            return false;
+        }
+
+        return UserLogbookAccess::where('user_id', $userId)
+            ->where('logbook_template_id', $templateId)
+            ->where('logbook_role_id', $supervisorRole->id)
+            ->exists();
     }
 }

@@ -30,7 +30,7 @@ class LogbookTemplate extends Model
         'name',
         'description',
         'institution_id',
-        'has_been_assessed',
+        'created_by',
     ];
 
     /**
@@ -39,7 +39,6 @@ class LogbookTemplate extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'has_been_assessed' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -114,6 +113,14 @@ class LogbookTemplate extends Model
     public function institution()
     {
         return $this->belongsTo(Institution::class, 'institution_id');
+    }
+
+    /**
+     * Get the user who created this template (owner)
+     */
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     /**

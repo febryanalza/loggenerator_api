@@ -314,6 +314,43 @@
         </form>
     </div>
 </div>
+
+<!-- Delete User Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-lg max-w-md w-full">
+        <div class="p-6">
+            <div class="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+                <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+            </div>
+            
+            <h3 class="text-xl font-bold text-gray-900 text-center mb-2">Konfirmasi Hapus User</h3>
+            <p class="text-gray-600 text-center mb-6">
+                Apakah Anda yakin ingin menghapus user <strong id="deleteUserName"></strong>?
+                <br><span class="text-sm text-red-600 mt-2 block">Tindakan ini tidak dapat dibatalkan!</span>
+            </p>
+            
+            <input type="hidden" id="deleteUserId">
+            
+            <div id="deleteFormError" class="hidden mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p class="text-sm text-red-600"></p>
+            </div>
+            
+            <div class="flex gap-3">
+                <button type="button" 
+                        onclick="closeDeleteModal()"
+                        class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition duration-200">
+                    Batal
+                </button>
+                <button type="button" 
+                        onclick="executeDeleteUser()"
+                        id="deleteBtn"
+                        class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-200">
+                    <span id="deleteBtnText">Hapus</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -526,8 +563,10 @@ function populateInstitutionDropdown() {
     if (select) {
         select.innerHTML = '<option value="">Select Institution</option>';
         institutions.forEach(inst => {
+            console.log('Adding institution:', inst.id, '-', inst.name);
             select.innerHTML += `<option value="${inst.id}">${inst.name}</option>`;
         });
+        console.log('Total institutions in dropdown:', institutions.length);
     }
 }
 
@@ -640,6 +679,11 @@ function renderUsersTable() {
                             class="text-blue-600 hover:text-blue-900 mr-3" 
                             title="View Details">
                         <i class="fas fa-eye"></i>
+                    </button>
+                    <button onclick="confirmDeleteUser('${user.id}', '${user.name}')" 
+                            class="text-red-600 hover:text-red-900" 
+                            title="Delete User">
+                        <i class="fas fa-trash"></i>
                     </button>
                 </td>
             </tr>
@@ -803,7 +847,10 @@ document.getElementById('userForm').addEventListener('submit', async function(e)
     
     if (formData.role === 'Institution Admin') {
         formData.institution_id = document.getElementById('userInstitution').value;
+        console.log('Institution Admin - institution_id:', formData.institution_id);
     }
+    
+    console.log('Form data being sent:', formData);
     
     try {
         const token = localStorage.getItem('admin_token');
@@ -929,6 +976,71 @@ function viewUserDetails(userId) {
     }
     
     alert(`User Details:\n\nName: ${user.name}\nEmail: ${user.email}\nRole: ${roleText}\nStatus: ${user.status || 'Unknown'}\nLast Login: ${user.last_login || 'Never'}`);
+}
+
+// Open delete confirmation modal
+function confirmDeleteUser(userId, userName) {
+    document.getElementById('deleteUserId').value = userId;
+    document.getElementById('deleteUserName').textContent = userName;
+    document.getElementById('deleteFormError').classList.add('hidden');
+    
+    const modal = document.getElementById('deleteModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+// Close delete modal
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+// Execute delete user
+async function executeDeleteUser() {
+    const userId = document.getElementById('deleteUserId').value;
+    const deleteBtn = document.getElementById('deleteBtn');
+    const deleteBtnText = document.getElementById('deleteBtnText');
+    const originalText = deleteBtnText.textContent;
+    
+    try {
+        // Disable button and show loading
+        deleteBtn.disabled = true;
+        deleteBtnText.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Menghapus...';
+        
+        const token = localStorage.getItem('admin_token');
+        const response = await fetch(`/api/admin/users/${userId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to delete user');
+        }
+        
+        showToast('User berhasil dihapus!', 'success');
+        closeDeleteModal();
+        
+        // Clear cache and reload
+        clearCacheData(USERS_CACHE_KEY);
+        await loadUsers(true);
+        
+    } catch (error) {
+        console.error('Delete user error:', error);
+        const errorDiv = document.getElementById('deleteFormError');
+        errorDiv.querySelector('p').textContent = error.message;
+        errorDiv.classList.remove('hidden');
+    } finally {
+        // Re-enable button
+        deleteBtn.disabled = false;
+        deleteBtnText.textContent = originalText;
+    }
 }
 
 // Show toast notification

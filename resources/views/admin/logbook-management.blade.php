@@ -436,8 +436,8 @@ async function confirmDelete() {
 }
 
 function viewTemplate(templateId) {
-    // Navigate to template detail or show modal with details
-    window.location.href = `/admin/templates/${templateId}`;
+    // Navigate to logbook detail page
+    window.location.href = `/admin/logbook/${templateId}`;
 }
 
 async function refreshTemplates() {

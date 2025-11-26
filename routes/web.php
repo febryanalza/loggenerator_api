@@ -44,9 +44,11 @@ Route::prefix('admin')->group(function () {
     
     // Admin pages
     Route::get('/user-management', function() { return view('admin.user-management'); })->name('admin.user-management');
+    Route::get('/institution-management', function() { return view('admin.institution-management'); })->name('admin.institution-management');
     Route::get('/logbook-management', function() { return view('admin.logbook-management'); })->name('admin.logbook-management');
     Route::get('/content-management', function() { return view('admin.content-management'); })->name('admin.content-management');
     Route::get('/transactions', function() { return view('admin.transactions'); })->name('admin.transactions');
+    Route::get('/logbook/{id}', function() { return view('admin.logbook-detail'); })->name('admin.logbook-detail');
 });
 
 // Note: All admin API endpoints (login, logout, stats, etc.) are now in routes/api.php

@@ -107,6 +107,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:Super Admin,Admin,Manager')->group(function () {
         Route::get('/institutions/details', [\App\Http\Controllers\Api\InstitutionController::class, 'getAllDetails']);
         Route::get('/institutions/{id}', [\App\Http\Controllers\Api\InstitutionController::class, 'show']);
+        Route::get('/institutions/{id}/templates', [\App\Http\Controllers\Api\InstitutionController::class, 'getTemplatesByInstitution']);
         Route::post('/institutions', [\App\Http\Controllers\Api\InstitutionController::class, 'store']);
         Route::put('/institutions/{id}', [\App\Http\Controllers\Api\InstitutionController::class, 'update']);
         Route::delete('/institutions/{id}', [\App\Http\Controllers\Api\InstitutionController::class, 'destroy']);
@@ -144,13 +145,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/user-access/{id}', [UserLogbookAccessController::class, 'destroy']);
     });
 
-    // Logbook Verification routes
-    Route::put('/logbook/verification', [LogbookVerificationController::class, 'updateVerificationStatus']);
-    Route::get('/logbook/verification/{templateId}', [LogbookVerificationController::class, 'getVerificationStatus']);
-    
-    // Logbook Assessment routes (Institution Admin only)
-    Route::middleware('role:Institution Admin')->group(function () {
-        Route::put('/logbook/assessment', [LogbookVerificationController::class, 'updateAssessmentStatus']);
+    // Logbook Data Verification routes (Supervisor only)
+    Route::prefix('logbook-data-verification')->middleware('logbook.access:Supervisor,Owner')->group(function () {
+        Route::get('/data', [LogbookVerificationController::class, 'getDataForVerification']);
+        Route::post('/data/{dataId}/verify', [LogbookVerificationController::class, 'verifyData']);
+        Route::post('/data/{dataId}/unverify', [LogbookVerificationController::class, 'unverifyData']);
+        Route::get('/stats', [LogbookVerificationController::class, 'getVerificationStats']);
+        Route::post('/bulk-verify', [LogbookVerificationController::class, 'bulkVerifyData']);
     });
     
     // Logbook Field routes - Template management
@@ -227,6 +228,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/admin/users', [UserManagementController::class, 'createUser']);
         Route::get('/admin/users', [UserManagementController::class, 'getUsers']);
         Route::put('/admin/users/{userId}/role', [UserManagementController::class, 'updateUserRole']);
+        Route::delete('/admin/users/{userId}', [UserManagementController::class, 'deleteUser']);
         
         // System management routes
         // Route::get('/admin/system-info', [SystemController::class, 'info']);

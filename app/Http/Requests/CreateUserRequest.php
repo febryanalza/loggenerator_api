@@ -29,7 +29,8 @@ class CreateUserRequest extends FormRequest
             'email' => 'required|email|unique:users,email|max:150',
             'password' => 'required|string|min:8',
             'phone_number' => 'nullable|string|max:20',
-            'role' => 'required|string|in:Admin,Manager,User'
+            'role' => 'required|string|in:Admin,Manager,Institution Admin,User',
+            'institution_id' => 'required_if:role,Institution Admin|nullable|uuid|exists:institutions,id'
         ];
     }
 
@@ -59,7 +60,11 @@ class CreateUserRequest extends FormRequest
             
             'role.required' => 'Role is required',
             'role.string' => 'Role must be a string',
-            'role.in' => 'Role must be one of: Admin, Manager, User'
+            'role.in' => 'Role must be one of: Admin, Manager, Institution Admin, User',
+            
+            'institution_id.required_if' => 'Institution is required for Institution Admin role',
+            'institution_id.uuid' => 'Institution ID must be a valid UUID',
+            'institution_id.exists' => 'Selected institution does not exist'
         ];
     }
 

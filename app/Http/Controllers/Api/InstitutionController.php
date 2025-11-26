@@ -46,7 +46,9 @@ class InstitutionController extends Controller
     public function getAllDetails()
     {
         try {
-            $institutions = Institution::orderBy('name')->get();
+            $institutions = Institution::withCount(['logbookTemplates as templates_count', 'users as users_count'])
+                ->orderBy('name')
+                ->get();
             
             return response()->json([
                 'success' => true,
@@ -259,6 +261,63 @@ class InstitutionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete institution',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all logbook templates affiliated with a specific institution.
+     * Only Super Admin, Admin, and Manager can view templates by institution.
+     *
+     * @param  string  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getTemplatesByInstitution($id)
+    {
+        try {
+            $institution = Institution::findOrFail($id);
+            
+            // Get templates with owner information and stats
+            $templates = $institution->logbookTemplates()
+                ->with(['owner:id,name,email'])
+                ->withCount(['data', 'userAccess'])
+                ->orderBy('name')
+                ->get()
+                ->map(function ($template) {
+                    return [
+                        'id' => $template->id,
+                        'name' => $template->name,
+                        'description' => $template->description,
+                        'owner' => $template->owner ? [
+                            'id' => $template->owner->id,
+                            'name' => $template->owner->name,
+                            'email' => $template->owner->email
+                        ] : null,
+                        'entries_count' => $template->data_count,
+                        'users_count' => $template->user_access_count,
+                        'created_at' => $template->created_at,
+                        'updated_at' => $template->updated_at,
+                    ];
+                });
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Templates retrieved successfully',
+                'data' => [
+                    'institution' => [
+                        'id' => $institution->id,
+                        'name' => $institution->name,
+                        'description' => $institution->description,
+                    ],
+                    'templates' => $templates,
+                    'total_templates' => $templates->count(),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch templates',
                 'error' => $e->getMessage()
             ], 500);
         }

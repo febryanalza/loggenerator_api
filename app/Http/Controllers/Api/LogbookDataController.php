@@ -327,12 +327,12 @@ class LogbookDataController extends Controller
     {
         try {
             $template = LogbookTemplate::select('id', 'name', 'description', 'created_at')
-                ->withCount('logbookData')
+                ->withCount('data')
                 ->findOrFail($templateId);
 
             // Get basic statistics
             $stats = [
-                'total_entries' => $template->logbook_data_count,
+                'total_entries' => $template->data_count,
                 'total_writers' => LogbookData::where('template_id', $templateId)
                     ->distinct('writer_id')
                     ->count('writer_id'),
@@ -371,13 +371,22 @@ class LogbookDataController extends Controller
                 'statistics' => $stats,
                 'top_writers' => $topWriters
             ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::error('Template not found', [
+                'template_id' => $templateId,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Template not found'
+            ], 404);
         } catch (\Exception $e) {
-            if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Template not found'
-                ], 404);
-            }
+            Log::error('Failed to fetch template summary', [
+                'template_id' => $templateId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
 
             return response()->json([
                 'success' => false,

@@ -160,9 +160,9 @@
                 <span class="ml-auto bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">Dev</span>
             </a>
             
-            <a href="{{ route('admin.content-management') }}" class="sidebar-item flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 {{ request()->routeIs('admin.content-management') ? 'active' : '' }}">
+            <a href="{{ route('admin.institution-management') }}" class="sidebar-item flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 {{ request()->routeIs('admin.institution-management') ? 'active' : '' }}">
                 <i class="fas fa-file-alt w-5 h-5 mr-3"></i>
-                <span class="font-medium">Manajemen Konten</span>
+                <span class="font-medium">Manajemen Institution</span>
                 <span class="ml-auto bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">Dev</span>
             </a>
             
