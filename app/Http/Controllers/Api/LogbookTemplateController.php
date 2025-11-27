@@ -362,19 +362,6 @@ class LogbookTemplateController extends Controller
                     'message' => 'Template not found'
                 ], 404);
             }
-
-            // Get permissions for this template if user has access
-            if ($template->role_id) {
-                $permissions = DB::table('logbook_role_permissions')
-                    ->join('logbook_permissions', 'logbook_role_permissions.logbook_permission_id', '=', 'logbook_permissions.id')
-                    ->where('logbook_role_permissions.logbook_role_id', $template->role_id)
-                    ->select(['logbook_permissions.name', 'logbook_permissions.description'])
-                    ->get();
-                
-                $template->permissions = $permissions;
-            } else {
-                $template->permissions = [];
-            }
             
             return response()->json([
                 'success' => true,
