@@ -323,6 +323,7 @@ class LogbookTemplateController extends Controller
 
     /**
      * Display the specified template.
+     * Now includes user logbook access information with role and permissions.
      *
      * @param  string  $id
      * @return \Illuminate\Http\JsonResponse
@@ -330,10 +331,54 @@ class LogbookTemplateController extends Controller
     public function show($id)
     {
         try {
-            $template = LogbookTemplate::with('fields')->findOrFail($id);
+            $userId = Auth::id();
+            
+            // Get template with user access information
+            $template = LogbookTemplate::select([
+                    'logbook_template.id',
+                    'logbook_template.name',
+                    'logbook_template.description',
+                    'logbook_template.institution_id',
+                    'logbook_template.created_by',
+                    'logbook_template.created_at',
+                    'logbook_template.updated_at',
+                    'logbook_roles.id as role_id',
+                    'logbook_roles.name as role_name',
+                    'logbook_roles.description as role_description',
+                    'user_logbook_access.created_at as access_granted_at'
+                ])
+                ->leftJoin('user_logbook_access', function($join) use ($userId) {
+                    $join->on('logbook_template.id', '=', 'user_logbook_access.logbook_template_id')
+                         ->where('user_logbook_access.user_id', '=', $userId);
+                })
+                ->leftJoin('logbook_roles', 'user_logbook_access.logbook_role_id', '=', 'logbook_roles.id')
+                ->where('logbook_template.id', $id)
+                ->with(['fields', 'institution:id,name', 'owner:id,name,email'])
+                ->first();
+
+            if (!$template) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Template not found'
+                ], 404);
+            }
+
+            // Get permissions for this template if user has access
+            if ($template->role_id) {
+                $permissions = DB::table('logbook_role_permissions')
+                    ->join('logbook_permissions', 'logbook_role_permissions.logbook_permission_id', '=', 'logbook_permissions.id')
+                    ->where('logbook_role_permissions.logbook_role_id', $template->role_id)
+                    ->select(['logbook_permissions.name', 'logbook_permissions.description'])
+                    ->get();
+                
+                $template->permissions = $permissions;
+            } else {
+                $template->permissions = [];
+            }
             
             return response()->json([
                 'success' => true,
+                'message' => 'Template retrieved successfully',
                 'data' => $template
             ]);
         } catch (\Exception $e) {

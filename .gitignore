@@ -2,6 +2,8 @@
 .DS_Store
 .env
 .env.backup
+.env.local
+.env.production
 .phpactor.json
 .phpunit.result.cache
 /.fleet
@@ -18,6 +20,29 @@
 /storage/*.key
 /storage/pail
 /vendor/
+composer.lock
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Cache and logs
+/storage/logs/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/views/
