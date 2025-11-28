@@ -367,6 +367,7 @@ class LogbookVerificationController extends Controller
     public function bulkVerifyData(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            'template_id' => 'required|uuid|exists:logbook_template,id',
             'data_ids' => 'required|array|min:1',
             'data_ids.*' => 'required|uuid|exists:logbook_datas,id',
             'verification_notes' => 'sometimes|string|max:1000'
@@ -384,8 +385,17 @@ class LogbookVerificationController extends Controller
             DB::beginTransaction();
 
             $currentUser = $request->user();
+            $templateId = $request->template_id;
             $dataIds = $request->data_ids;
             $verificationNotes = $request->get('verification_notes');
+
+            // Check if user is a supervisor for this template FIRST
+            if (!$this->isSupervisorOfTemplate($currentUser->id, $templateId)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. Only supervisors can verify data for this template.'
+                ], 403);
+            }
 
             $verifiedCount = 0;
             $errors = [];
@@ -394,9 +404,9 @@ class LogbookVerificationController extends Controller
                 try {
                     $logbookData = LogbookData::findOrFail($dataId);
 
-                    // Check if user is a supervisor for this template
-                    if (!$this->isSupervisorOfTemplate($currentUser->id, $logbookData->template_id)) {
-                        $errors[] = "Unauthorized to verify data entry: {$dataId}";
+                    // Verify that the data belongs to the template
+                    if ($logbookData->template_id !== $templateId) {
+                        $errors[] = "Data entry {$dataId} does not belong to template {$templateId}";
                         continue;
                     }
 

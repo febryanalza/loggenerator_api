@@ -160,7 +160,7 @@ class LogbookDataController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = LogbookData::with(['template', 'writer']);
+            $query = LogbookData::with(['template', 'writer', 'verifier']);
             
             // Filter by template if provided
             if ($request->has('template_id')) {
@@ -210,7 +210,7 @@ class LogbookDataController extends Controller
     public function show($id)
     {
         try {
-            $logbookData = LogbookData::with(['template.fields', 'writer'])->findOrFail($id);
+            $logbookData = LogbookData::with(['template.fields', 'writer', 'verifier'])->findOrFail($id);
             
             return response()->json([
                 'success' => true,
@@ -242,8 +242,8 @@ class LogbookDataController extends Controller
             $minimal = $request->get('minimal', false);
             
             // Build optimized query
-            $query = LogbookData::select('id', 'writer_id', 'data', 'created_at', 'updated_at')
-                ->with(['writer:id,name,email'])
+            $query = LogbookData::select('id', 'writer_id', 'verified_by', 'data', 'is_verified', 'verified_at', 'verification_notes', 'created_at', 'updated_at')
+                ->with(['writer:id,name,email', 'verifier:id,name,email'])
                 ->where('template_id', $templateId);
             
             // Filter by writer if provided
@@ -411,7 +411,7 @@ class LogbookDataController extends Controller
         ]);
 
         try {
-            $logbookData = LogbookData::with(['template.fields', 'writer'])->findOrFail($id);
+            $logbookData = LogbookData::with(['template.fields', 'writer', 'verifier'])->findOrFail($id);
             
             // Check if user can update this entry (Owner or Editor only)
             $user = Auth::user();
@@ -503,7 +503,7 @@ class LogbookDataController extends Controller
     public function destroy($id)
     {
         try {
-            $logbookData = LogbookData::with(['template', 'writer'])->findOrFail($id);
+            $logbookData = LogbookData::with(['template', 'writer', 'verifier'])->findOrFail($id);
             $user = Auth::user();
             
             // Check if user has administrative roles that can override
