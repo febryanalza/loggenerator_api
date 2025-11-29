@@ -156,7 +156,7 @@ class AdminAuthController extends Controller
                     'status' => $user->status,
                     'roles' => $user->getRoleNames(),
                     'last_login' => $user->last_login,
-                    'profile_picture' => $user->profile_picture
+                    'avatar_url' => $user->avatar_url
                 ]
             ]
         ]);

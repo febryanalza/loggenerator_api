@@ -41,7 +41,6 @@ class ProfileController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone_number' => $user->phone_number,
-                'profile_picture' => $user->profile_picture,
                 'avatar_url' => $user->avatar_url,
                 'auth_provider' => $user->auth_provider ?? 'email',
                 'status' => $user->status,
@@ -75,7 +74,7 @@ class ProfileController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:100',
             'phone_number' => 'sometimes|nullable|string|max:20',
-            'profile_picture' => 'sometimes|string|nullable', // Base64 image or existing URL
+            'avatar_url' => 'sometimes|string|nullable', // Base64 image or existing URL
             'current_password' => 'required_with:password|string',
             'password' => 'sometimes|string|min:8|confirmed',
         ]);
@@ -93,7 +92,7 @@ class ProfileController extends Controller
             $oldData = [
                 'name' => $user->name,
                 'phone_number' => $user->phone_number,
-                'profile_picture' => $user->profile_picture,
+                'avatar_url' => $user->avatar_url,
             ];
 
             // Update name if provided
@@ -108,17 +107,17 @@ class ProfileController extends Controller
                 $changes[] = 'phone_number';
             }
 
-            // Handle profile picture upload
-            if ($request->has('profile_picture')) {
-                $newPicturePath = $this->handleProfilePicture($request->profile_picture, $user);
-                if ($newPicturePath !== $user->profile_picture) {
-                    // Delete old profile picture if exists and not from Google
-                    if ($user->profile_picture && !$user->avatar_url) {
-                        Storage::disk('avatar')->delete(basename($user->profile_picture));
+            // Handle avatar upload
+            if ($request->has('avatar_url')) {
+                $newAvatarPath = $this->handleAvatarUpload($request->avatar_url, $user);
+                if ($newAvatarPath !== $user->avatar_url) {
+                    // Delete old avatar if exists and is a local file
+                    if ($user->avatar_url && str_contains($user->avatar_url, 'storage/avatars/')) {
+                        Storage::disk('avatar')->delete(basename($user->avatar_url));
                     }
                     
-                    $user->profile_picture = $newPicturePath;
-                    $changes[] = 'profile_picture';
+                    $user->avatar_url = $newAvatarPath;
+                    $changes[] = 'avatar_url';
                 }
             }
 
@@ -144,7 +143,7 @@ class ProfileController extends Controller
                 $newData = [
                     'name' => $user->name,
                     'phone_number' => $user->phone_number,
-                    'profile_picture' => $user->profile_picture,
+                    'avatar_url' => $user->avatar_url,
                 ];
                 
                 AuditLog::create([
@@ -166,7 +165,6 @@ class ProfileController extends Controller
                         'name' => $user->name,
                         'email' => $user->email,
                         'phone_number' => $user->phone_number,
-                        'profile_picture' => $user->profile_picture,
                         'avatar_url' => $user->avatar_url,
                         'status' => $user->status,
                         'updated_at' => $user->updated_at,
@@ -181,7 +179,6 @@ class ProfileController extends Controller
                         'name' => $user->name,
                         'email' => $user->email,
                         'phone_number' => $user->phone_number,
-                        'profile_picture' => $user->profile_picture,
                         'avatar_url' => $user->avatar_url,
                         'status' => $user->status,
                     ]
@@ -198,35 +195,35 @@ class ProfileController extends Controller
     }
 
     /**
-     * Handle profile picture upload (base64 or URL)
+     * Handle avatar upload (base64 or URL)
      *
-     * @param string $profilePicture
+     * @param string $avatarData
      * @param User $user
      * @return string|null
      */
-    private function handleProfilePicture($profilePicture, User $user)
+    private function handleAvatarUpload($avatarData, User $user)
     {
-        // If null or empty, remove profile picture
-        if (empty($profilePicture)) {
+        // If null or empty, remove avatar
+        if (empty($avatarData)) {
             return null;
         }
 
-        // If it's already a URL (like existing profile picture), return as is
-        if (filter_var($profilePicture, FILTER_VALIDATE_URL)) {
-            return $profilePicture;
+        // If it's already a URL (like existing avatar or Google avatar), return as is
+        if (filter_var($avatarData, FILTER_VALIDATE_URL)) {
+            return $avatarData;
         }
 
         // If it's base64 image data
-        if ($this->isBase64Image($profilePicture)) {
-            return $this->saveBase64Image($profilePicture, $user->id);
+        if ($this->isBase64Image($avatarData)) {
+            return $this->saveBase64Image($avatarData, $user->id);
         }
 
         // If it's a relative path, convert to full URL
-        if (is_string($profilePicture) && !str_starts_with($profilePicture, 'http')) {
-            return url('storage/avatars/' . $profilePicture);
+        if (is_string($avatarData) && !str_starts_with($avatarData, 'http')) {
+            return url('storage/avatars/' . $avatarData);
         }
 
-        return $profilePicture;
+        return $avatarData;
     }
 
     /**
@@ -290,7 +287,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Delete user's profile picture
+     * Delete user's avatar
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -308,33 +305,33 @@ class ProfileController extends Controller
         }
         
         try {
-            // Delete file if it's stored locally (not from Google)
-            if ($user->profile_picture && !$user->avatar_url) {
-                Storage::disk('avatar')->delete(basename($user->profile_picture));
+            // Delete file if it's stored locally (contains storage/avatars path)
+            if ($user->avatar_url && str_contains($user->avatar_url, 'storage/avatars/')) {
+                Storage::disk('avatar')->delete(basename($user->avatar_url));
             }
             
-            // Clear profile picture field
-            $user->profile_picture = null;
+            // Clear avatar_url field
+            $user->avatar_url = null;
             $user->save();
             
             // Create audit log
             AuditLog::create([
                 'user_id' => $user->id,
-                'action' => 'DELETE_PROFILE_PICTURE',
-                'description' => 'Deleted profile picture',
+                'action' => 'DELETE_AVATAR',
+                'description' => 'Deleted avatar',
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent()
             ]);
             
             return response()->json([
                 'success' => true,
-                'message' => 'Profile picture deleted successfully'
+                'message' => 'Avatar deleted successfully'
             ]);
             
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete profile picture',
+                'message' => 'Failed to delete avatar',
                 'error' => $e->getMessage()
             ], 500);
         }

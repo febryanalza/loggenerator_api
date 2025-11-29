@@ -46,10 +46,9 @@ class User extends Authenticatable
         'password',
         'status',
         'phone_number',
-        'profile_picture',
+        'avatar_url',
         'last_login',
         'google_id',
-        'avatar_url',
         'auth_provider',
         'google_verified_at',
         'institution_id'
