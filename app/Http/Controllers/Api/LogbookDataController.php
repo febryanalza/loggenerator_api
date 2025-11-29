@@ -123,8 +123,8 @@ class LogbookDataController extends Controller
             // Store the image
             Storage::disk('public')->put($directory . '/' . $filename, base64_decode($imageData));
             
-            // Update the data with the image URL
-            $processedData[$fieldName] = url('/api/images/logbook/' . $filename);
+            // Update the data with the image URL (use storage symbolic link like avatar)
+            $processedData[$fieldName] = url('storage/logbook_images/' . $filename);
         }
         
         return $processedData;

@@ -105,8 +105,8 @@ class FileController extends Controller
             // Store the image
             $path = $image->storeAs('logbook_images', $filename, 'public');
             
-            // Generate URL for accessing the image
-            $url = url('/api/images/logbook/' . $filename);
+            // Generate URL for accessing the image (use storage symbolic link like avatar)
+            $url = url('storage/logbook_images/' . $filename);
             
             return response()->json([
                 'success' => true,
