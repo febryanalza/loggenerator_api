@@ -18,14 +18,13 @@ class FileController extends Controller
     public function getLogbookImage($filename)
     {
         try {
+            // Sanitize filename to prevent directory traversal
+            $filename = basename($filename);
             $path = 'logbook_images/' . $filename;
             
             // Check if file exists
             if (!Storage::disk('public')->exists($path)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Image not found'
-                ], 404);
+                abort(404, 'Image not found');
             }
             
             // Get file content
@@ -41,14 +40,11 @@ class FileController extends Controller
                 default => 'image/jpeg'
             };
             
-            return response($file)
+            return response($file, 200)
                 ->header('Content-Type', $mimeType)
                 ->header('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error retrieving image: ' . $e->getMessage()
-            ], 500);
+            abort(500, 'Error retrieving image: ' . $e->getMessage());
         }
     }
     
@@ -61,18 +57,16 @@ class FileController extends Controller
     public function getAvatarImage($filename)
     {
         try {
-            $path = $filename;
+            // Sanitize filename to prevent directory traversal
+            $filename = basename($filename);
             
             // Check if file exists in avatar disk
-            if (!Storage::disk('avatar')->exists($path)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Avatar image not found'
-                ], 404);
+            if (!Storage::disk('avatar')->exists($filename)) {
+                abort(404, 'Avatar image not found');
             }
             
             // Get file content
-            $file = Storage::disk('avatar')->get($path);
+            $file = Storage::disk('avatar')->get($filename);
             
             // Get mime type from file extension
             $extension = pathinfo($filename, PATHINFO_EXTENSION);
@@ -84,14 +78,11 @@ class FileController extends Controller
                 default => 'image/jpeg'
             };
             
-            return response($file)
+            return response($file, 200)
                 ->header('Content-Type', $mimeType)
                 ->header('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error retrieving avatar image: ' . $e->getMessage()
-            ], 500);
+            abort(500, 'Error retrieving avatar image: ' . $e->getMessage());
         }
     }
     

@@ -99,6 +99,12 @@ class LogbookDataController extends Controller
         
         $processedData = $data;
         
+        // Ensure directory exists
+        $directory = 'logbook_images';
+        if (!Storage::disk('public')->exists($directory)) {
+            Storage::disk('public')->makeDirectory($directory);
+        }
+        
         // Process each image field
         foreach ($imageFields as $fieldName) {
             // Skip if field not provided or not a valid base64 image
@@ -115,7 +121,7 @@ class LogbookDataController extends Controller
             $filename = 'logbook_' . time() . '_' . uniqid() . '.jpg';
             
             // Store the image
-            Storage::disk('public')->put('logbook_images/' . $filename, base64_decode($imageData));
+            Storage::disk('public')->put($directory . '/' . $filename, base64_decode($imageData));
             
             // Update the data with the image URL
             $processedData[$fieldName] = url('/api/images/logbook/' . $filename);
