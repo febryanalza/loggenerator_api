@@ -19,34 +19,38 @@ return new class extends Migration
     public function up(): void
     {
         // For PostgreSQL, we need to drop and recreate the constraint
-        // First, alter the column to remove the check constraint
+        // IMPORTANT: Update data BEFORE adding new constraint!
         
         if (DB::getDriverName() === 'pgsql') {
-            // PostgreSQL: Drop the existing check constraint and add new one
+            // Step 1: Drop the existing check constraint
             DB::statement('ALTER TABLE logbook_fields DROP CONSTRAINT IF EXISTS logbook_fields_data_type_check');
             
-            // Change column type to varchar temporarily, then add new check constraint
+            // Step 2: Change column type to varchar (no constraint)
             DB::statement('ALTER TABLE logbook_fields ALTER COLUMN data_type TYPE VARCHAR(50)');
             
-            // Add new check constraint with updated data types
+            // Step 3: Migrate existing data from old types to new types FIRST
+            DB::statement("UPDATE logbook_fields SET data_type = 'text' WHERE data_type = 'teks'");
+            DB::statement("UPDATE logbook_fields SET data_type = 'number' WHERE data_type = 'angka'");
+            DB::statement("UPDATE logbook_fields SET data_type = 'image' WHERE data_type = 'gambar'");
+            DB::statement("UPDATE logbook_fields SET data_type = 'date' WHERE data_type = 'tanggal'");
+            DB::statement("UPDATE logbook_fields SET data_type = 'time' WHERE data_type = 'jam'");
+            
+            // Step 4: Add new check constraint AFTER data is migrated
             DB::statement("ALTER TABLE logbook_fields ADD CONSTRAINT logbook_fields_data_type_check CHECK (data_type::text = ANY (ARRAY['text'::text, 'textarea'::text, 'number'::text, 'date'::text, 'time'::text, 'datetime'::text, 'image'::text, 'url'::text, 'phone'::text, 'currency'::text, 'percentage'::text, 'location'::text, 'file'::text]))");
-            
-            // Migrate existing data from old types to new types
-            DB::statement("UPDATE logbook_fields SET data_type = 'text' WHERE data_type = 'teks'");
-            DB::statement("UPDATE logbook_fields SET data_type = 'number' WHERE data_type = 'angka'");
-            DB::statement("UPDATE logbook_fields SET data_type = 'image' WHERE data_type = 'gambar'");
-            DB::statement("UPDATE logbook_fields SET data_type = 'date' WHERE data_type = 'tanggal'");
-            DB::statement("UPDATE logbook_fields SET data_type = 'time' WHERE data_type = 'jam'");
         } else {
-            // MySQL: Modify the ENUM column
-            DB::statement("ALTER TABLE logbook_fields MODIFY COLUMN data_type ENUM('text', 'textarea', 'number', 'date', 'time', 'datetime', 'image', 'url', 'phone', 'currency', 'percentage', 'location', 'file') NOT NULL");
+            // MySQL: Migrate data first, then modify ENUM
+            // Step 1: Temporarily allow all values by changing to VARCHAR
+            DB::statement("ALTER TABLE logbook_fields MODIFY COLUMN data_type VARCHAR(50) NOT NULL");
             
-            // Migrate existing data from old types to new types (if any exist)
+            // Step 2: Migrate existing data from old types to new types
             DB::statement("UPDATE logbook_fields SET data_type = 'text' WHERE data_type = 'teks'");
             DB::statement("UPDATE logbook_fields SET data_type = 'number' WHERE data_type = 'angka'");
             DB::statement("UPDATE logbook_fields SET data_type = 'image' WHERE data_type = 'gambar'");
             DB::statement("UPDATE logbook_fields SET data_type = 'date' WHERE data_type = 'tanggal'");
             DB::statement("UPDATE logbook_fields SET data_type = 'time' WHERE data_type = 'jam'");
+            
+            // Step 3: Apply new ENUM constraint
+            DB::statement("ALTER TABLE logbook_fields MODIFY COLUMN data_type ENUM('text', 'textarea', 'number', 'date', 'time', 'datetime', 'image', 'url', 'phone', 'currency', 'percentage', 'location', 'file') NOT NULL");
         }
     }
 
