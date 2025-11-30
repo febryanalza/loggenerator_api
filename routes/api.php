@@ -115,6 +115,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/institutions/{id}', [\App\Http\Controllers\Api\InstitutionController::class, 'destroy']);
     });
     
+    // Institution members - accessible by Institution Admin for their own institution
+    Route::middleware('role:Super Admin,Admin,Manager,Institution Admin')->group(function () {
+        Route::get('/institutions/{id}/members', [\App\Http\Controllers\Api\InstitutionController::class, 'getMembersByInstitution']);
+    });
+    
+    // Institution Admin - manage their own institution
+    Route::prefix('institution')->middleware('role:Institution Admin')->group(function () {
+        Route::get('/my-institution', [\App\Http\Controllers\Api\InstitutionController::class, 'getMyInstitution']);
+        Route::put('/my-institution', [\App\Http\Controllers\Api\InstitutionController::class, 'updateMyInstitution']);
+    });
+    
     // ===============================================
     // Available Data Types routes
     // ===============================================
@@ -138,6 +149,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/available-templates', [AvailableTemplateController::class, 'index']);
     Route::get('/available-templates/active', [AvailableTemplateController::class, 'activeList']);
     Route::get('/available-templates/institution/{institutionId}', [AvailableTemplateController::class, 'byInstitution']);
+    Route::get('/available-templates/institution/{institutionId}/all', [AvailableTemplateController::class, 'allByInstitution']);
     Route::get('/available-templates/{id}', [AvailableTemplateController::class, 'show']);
     
     // Admin, Manager, and Institution Admin - CRUD operations for templates
@@ -256,6 +268,18 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // File upload routes
     Route::post('/upload/image', [FileController::class, 'uploadImage']);
+    
+    // User search - accessible by Admin roles including Institution Admin
+    Route::middleware('role:Super Admin,Admin,Manager,Institution Admin')->group(function () {
+        Route::get('/users/search', [UserManagementController::class, 'searchUsers']);
+    });
+    
+    // Institution Admin - Add members to their own institution
+    Route::middleware('role:Institution Admin')->group(function () {
+        Route::post('/institution/members', [UserManagementController::class, 'addInstitutionMember']);
+        Route::get('/institution/assignable-roles', [RoleController::class, 'getAssignableRolesForInstitutionAdmin']);
+        Route::get('/institution/all-roles', [RoleController::class, 'getAllRolesList']);
+    });
     
     // Admin only routes
     Route::middleware('role:Super Admin,Admin')->group(function () {

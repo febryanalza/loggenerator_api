@@ -251,4 +251,93 @@ class RoleController extends Controller
             ], 404);
         }
     }
+
+    /**
+     * Get assignable roles for Institution Admin.
+     * Institution Admin can only assign 'Institution Admin' or 'User' roles.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAssignableRolesForInstitutionAdmin()
+    {
+        try {
+            // Institution Admin can only assign these roles
+            $allowedRoles = ['Institution Admin', 'User'];
+            
+            $roles = Role::whereIn('name', $allowedRoles)
+                ->orderBy('name', 'asc')
+                ->get(['id', 'name', 'guard_name', 'created_at']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Assignable roles retrieved successfully',
+                'data' => $roles->map(function ($role) {
+                    return [
+                        'id' => $role->id,
+                        'name' => $role->name,
+                        'label' => $this->getRoleLabel($role->name),
+                        'guard_name' => $role->guard_name
+                    ];
+                })
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve assignable roles',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all roles list (for display purposes).
+     * Accessible by Institution Admin and above.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAllRolesList()
+    {
+        try {
+            $roles = Role::orderBy('name', 'asc')
+                ->get(['id', 'name', 'guard_name', 'created_at']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'All roles retrieved successfully',
+                'data' => $roles->map(function ($role) {
+                    return [
+                        'id' => $role->id,
+                        'name' => $role->name,
+                        'label' => $this->getRoleLabel($role->name),
+                        'guard_name' => $role->guard_name
+                    ];
+                })
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve roles',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get human-readable label for role name.
+     *
+     * @param string $roleName
+     * @return string
+     */
+    private function getRoleLabel($roleName)
+    {
+        $labels = [
+            'Super Admin' => 'Super Admin',
+            'Admin' => 'Admin',
+            'Manager' => 'Manager',
+            'Institution Admin' => 'Admin Institusi',
+            'User' => 'Anggota'
+        ];
+
+        return $labels[$roleName] ?? $roleName;
+    }
 }

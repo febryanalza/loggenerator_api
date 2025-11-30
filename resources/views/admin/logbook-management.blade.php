@@ -54,7 +54,7 @@ const LogbookManagement = {
         
         if (!token || !user) {
             console.error('No authentication found');
-            window.location.href = '/admin/login';
+            window.location.href = '/login';
             return;
         }
 

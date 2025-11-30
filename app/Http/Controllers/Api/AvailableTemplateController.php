@@ -447,7 +447,7 @@ class AvailableTemplateController extends Controller
     }
 
     /**
-     * Get templates by institution.
+     * Get active templates by institution.
      * All authenticated users can view.
      *
      * @param string $institutionId
@@ -465,6 +465,36 @@ class AvailableTemplateController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Templates retrieved successfully',
+                'data' => $templates,
+                'count' => $templates->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch templates',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all templates (active and inactive) by institution.
+     * Used by Institution Admin for template management.
+     *
+     * @param string $institutionId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function allByInstitution($institutionId)
+    {
+        try {
+            $templates = AvailableTemplate::with(['creator:id,name,email'])
+                ->where('institution_id', $institutionId)
+                ->orderBy('name')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'All templates retrieved successfully',
                 'data' => $templates,
                 'count' => $templates->count()
             ]);

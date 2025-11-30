@@ -75,6 +75,16 @@ class AdminAuthController extends Controller
         $deviceName = $request->device_name ?? ($request->userAgent() ?? 'Admin Dashboard');
         $token = $user->createToken($deviceName)->plainTextToken;
 
+        // Load institution relationship if exists
+        $institution = null;
+        if ($user->institution_id) {
+            $user->load('institution');
+            $institution = $user->institution ? [
+                'id' => $user->institution->id,
+                'name' => $user->institution->name,
+            ] : null;
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Login successful',
@@ -85,6 +95,8 @@ class AdminAuthController extends Controller
                     'email' => $user->email,
                     'status' => $user->status,
                     'roles' => $user->getRoleNames(),
+                    'institution_id' => $user->institution_id,
+                    'institution' => $institution,
                 ],
                 'token' => $token
             ]
@@ -146,6 +158,16 @@ class AdminAuthController extends Controller
             ], 401);
         }
 
+        // Load institution relationship if exists
+        $institution = null;
+        if ($user->institution_id) {
+            $user->load('institution');
+            $institution = $user->institution ? [
+                'id' => $user->institution->id,
+                'name' => $user->institution->name,
+            ] : null;
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -156,7 +178,9 @@ class AdminAuthController extends Controller
                     'status' => $user->status,
                     'roles' => $user->getRoleNames(),
                     'last_login' => $user->last_login,
-                    'avatar_url' => $user->avatar_url
+                    'avatar_url' => $user->avatar_url,
+                    'institution_id' => $user->institution_id,
+                    'institution' => $institution,
                 ]
             ]
         ]);

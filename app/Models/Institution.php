@@ -14,6 +14,10 @@ class Institution extends Model
     protected $fillable = [
         'name',
         'description',
+        'phone_number',
+        'address',
+        'company_type',
+        'company_email',
     ];
 
     protected $casts = [

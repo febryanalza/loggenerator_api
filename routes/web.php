@@ -30,13 +30,16 @@ Route::post('/test-direct-login', function(Illuminate\Http\Request $request) {
     ]);
 });
 
+// Authentication Routes (Public - View Only)
+Route::get('/login', function() { return view('auth.login'); })->name('login');
+
 // Admin Authentication Routes (No Auth Required - View Only)
 Route::prefix('admin')->group(function () {
     // Access gate - public landing page
     Route::get('/access', function() { return view('admin.access-gate'); })->name('admin.access');
     
-    // Single unified login page with Bearer token authentication
-    Route::get('/login', function() { return view('admin.login'); })->name('admin.login');
+    // Legacy login route - redirect to unified login
+    Route::get('/login', function() { return redirect()->route('login'); })->name('admin.login');
     
     // Dashboard with sidebar layout - checks Bearer token via JavaScript
     Route::get('/', function() { return view('admin.dashboard'); })->name('admin.dashboard');
@@ -49,6 +52,25 @@ Route::prefix('admin')->group(function () {
     Route::get('/content-management', function() { return view('admin.content-management'); })->name('admin.content-management');
     Route::get('/transactions', function() { return view('admin.transactions'); })->name('admin.transactions');
     Route::get('/logbook/{id}', function() { return view('admin.logbook-detail'); })->name('admin.logbook-detail');
+});
+
+// Institution Admin Routes (View Only - Auth checked via JavaScript)
+Route::prefix('institution-admin')->group(function () {
+    // Dashboard
+    Route::get('/', function() { return view('institution_admin.dashboard'); })->name('institution-admin.dashboard');
+    Route::get('/dashboard', function() { return view('institution_admin.dashboard'); })->name('institution-admin.dashboard.main');
+    
+    // Logbook management
+    Route::get('/logbooks', function() { return view('institution_admin.logbooks'); })->name('institution-admin.logbooks');
+  
+    // Member management
+    Route::get('/members', function() { return view('institution_admin.members'); })->name('institution-admin.members');
+    
+    // Reports
+    Route::get('/reports', function() { return view('institution_admin.reports'); })->name('institution-admin.reports');
+    
+    // Settings
+    Route::get('/settings', function() { return view('institution_admin.settings'); })->name('institution-admin.settings');
 });
 
 // Note: All admin API endpoints (login, logout, stats, etc.) are now in routes/api.php

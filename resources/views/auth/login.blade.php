@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Admin Login - {{ config('app.name') }}</title>
+    <title>Login - {{ config('app.name') }}</title>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -280,9 +280,24 @@
                         
                         console.log('Bearer Token stored successfully');
                         
+                        // Check user role and redirect accordingly
+                        const userRoles = data.data.user.roles || [];
+                        const roleNames = userRoles.map(r => r.name || r);
+                        
                         showAlert('Login successful! Redirecting...', 'success');
+                        
                         setTimeout(() => {
-                            window.location.href = '/admin';
+                            // Redirect based on role
+                            if (roleNames.includes('Institution Admin') && 
+                                !roleNames.includes('Super Admin') && 
+                                !roleNames.includes('Admin') && 
+                                !roleNames.includes('Manager')) {
+                                // Institution Admin goes to institution admin dashboard
+                                window.location.href = '/institution-admin';
+                            } else {
+                                // Super Admin, Admin, Manager goes to admin dashboard
+                                window.location.href = '/admin';
+                            }
                         }, 1000);
                     } else {
                         showAlert(data.message || 'Login failed. Please try again.', 'error');

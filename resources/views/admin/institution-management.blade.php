@@ -318,7 +318,7 @@ async function initInstitutionManagement() {
     
     if (!token) {
         console.error('No authentication token found');
-        window.location.href = '/admin/login';
+        window.location.href = '/login';
         return;
     }
     

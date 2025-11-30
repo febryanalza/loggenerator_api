@@ -451,4 +451,259 @@ class UserManagementController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Search users by email or name
+     * Accessible by Super Admin, Admin, Manager, and Institution Admin
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function searchUsers(Request $request)
+    {
+        $currentUser = $request->user();
+        
+        // Verify that the authenticated user has permission
+        if (!$currentUser->hasAnyRole(['Super Admin', 'Admin', 'Manager', 'Institution Admin'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized.'
+            ], 403);
+        }
+
+        try {
+            $search = $request->get('search', '');
+            $perPage = $request->get('per_page', 10);
+            
+            $query = User::with(['roles']);
+            
+            // Search by email or name
+            if (!empty($search)) {
+                $query->where(function($q) use ($search) {
+                    $q->where('email', 'ILIKE', "%{$search}%")
+                      ->orWhere('name', 'ILIKE', "%{$search}%");
+                });
+            }
+            
+            // For Institution Admin, optionally filter to same institution
+            if ($currentUser->hasRole('Institution Admin') && $currentUser->institution_id) {
+                // Can search all users but prioritize same institution
+                $query->orderByRaw("CASE WHEN institution_id = ? THEN 0 ELSE 1 END", [$currentUser->institution_id]);
+            }
+            
+            $users = $query->orderBy('name')
+                          ->limit($perPage)
+                          ->get();
+
+            $userData = $users->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'status' => $user->status,
+                    'roles' => $user->roles->pluck('name')->toArray(),
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Users found',
+                'data' => $userData
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to search users: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to search users.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Add a member to institution (Institution Admin only)
+     * Institution Admin can only add members to their own institution
+     * Can create new user or assign existing user to institution
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function addInstitutionMember(Request $request)
+    {
+        $currentUser = $request->user();
+        
+        // Verify that the authenticated user is Institution Admin
+        if (!$currentUser->hasRole('Institution Admin')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only Institution Admin can add members.'
+            ], 403);
+        }
+
+        // Ensure Institution Admin has an institution
+        if (!$currentUser->institution_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not assigned to any institution.'
+            ], 403);
+        }
+
+        // Validate request
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'name' => 'required|string|max:100',
+            'email' => 'required|email|max:150',
+            'password' => 'required|min:8',
+            'phone_number' => 'nullable|string|max:20',
+            'role' => 'required|string|in:Institution Admin,User',
+        ], [
+            'role.in' => 'You can only assign Institution Admin or User role.'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation Error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $roleName = $request->role;
+            
+            // Check if email already exists
+            $existingUser = User::where('email', $request->email)->first();
+            
+            if ($existingUser) {
+                // If user exists, check if they already belong to an institution
+                if ($existingUser->institution_id) {
+                    if ($existingUser->institution_id === $currentUser->institution_id) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'User is already a member of your institution.'
+                        ], 422);
+                    } else {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'User already belongs to another institution.'
+                        ], 422);
+                    }
+                }
+                
+                // Assign existing user to this institution
+                $existingUser->institution_id = $currentUser->institution_id;
+                $existingUser->save();
+                
+                // Assign role if needed
+                if (!$existingUser->hasRole($roleName)) {
+                    $existingUser->assignRole($roleName);
+                }
+                
+                // Get institution name
+                $institution = Institution::find($currentUser->institution_id);
+                
+                // Create audit log
+                \App\Models\AuditLog::create([
+                    'user_id' => $currentUser->id,
+                    'action' => 'ADD_INSTITUTION_MEMBER',
+                    'description' => "Institution Admin added existing user '{$existingUser->name}' to institution '{$institution->name}' with role '{$roleName}'",
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent()
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Existing user added to your institution successfully',
+                    'data' => [
+                        'user' => [
+                            'id' => $existingUser->id,
+                            'name' => $existingUser->name,
+                            'email' => $existingUser->email,
+                            'phone_number' => $existingUser->phone_number,
+                            'status' => $existingUser->status,
+                            'role' => $roleName,
+                            'institution_id' => $existingUser->institution_id,
+                        ]
+                    ]
+                ]);
+            }
+            
+            // Create new user
+            $role = Role::where('name', $roleName)->where('guard_name', 'web')->first();
+            if (!$role) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Role '{$roleName}' not found in database"
+                ], 422);
+            }
+
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'phone_number' => $request->phone_number,
+                'institution_id' => $currentUser->institution_id,
+                'status' => 'active',
+                'last_login' => null,
+            ]);
+
+            // Assign role to user
+            $user->assignRole($roleName);
+
+            // Get institution name
+            $institution = Institution::find($currentUser->institution_id);
+
+            // Create audit log
+            \App\Models\AuditLog::create([
+                'user_id' => $currentUser->id,
+                'action' => 'ADD_INSTITUTION_MEMBER',
+                'description' => "Institution Admin created new user '{$user->name}' for institution '{$institution->name}' with role '{$roleName}'",
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+
+            // Also create audit log for the new user
+            \App\Models\AuditLog::create([
+                'user_id' => $user->id,
+                'action' => 'USER_CREATED',
+                'description' => "User account created by Institution Admin for institution '{$institution->name}' with role '{$roleName}'",
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'New member added to your institution successfully',
+                'data' => [
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'phone_number' => $user->phone_number,
+                        'status' => $user->status,
+                        'role' => $roleName,
+                        'institution_id' => $user->institution_id,
+                        'institution' => [
+                            'id' => $institution->id,
+                            'name' => $institution->name,
+                        ],
+                        'created_at' => $user->created_at
+                    ]
+                ]
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to add institution member: ' . $e->getMessage(), [
+                'admin_user_id' => $currentUser->id,
+                'institution_id' => $currentUser->institution_id,
+                'request_data' => $request->except(['password'])
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to add member. Please try again.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

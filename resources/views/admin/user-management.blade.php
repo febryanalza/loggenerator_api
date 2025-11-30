@@ -434,7 +434,7 @@ async function initUserManagement() {
     
     if (!token) {
         console.error('No authentication token found');
-        window.location.href = '/admin/login';
+        window.location.href = '/login';
         return;
     }
     
@@ -470,7 +470,7 @@ async function initUserManagement() {
         console.error('Initialization failed:', error);
         alert('Failed to load user management data. Please try again or contact support.');
         // Only redirect if serious error
-        window.location.href = '/admin/login';
+        window.location.href = '/login';
     }
 }
 

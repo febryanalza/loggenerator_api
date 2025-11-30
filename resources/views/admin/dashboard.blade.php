@@ -117,7 +117,7 @@ function checkAuthAndLoadDashboard() {
     const user = localStorage.getItem('admin_user');
     
     if (!token || !user) {
-        window.location.href = '/admin/login';
+        window.location.href = '/login';
         return;
     }
     
@@ -132,12 +132,12 @@ function checkAuthAndLoadDashboard() {
         }).catch(error => {
             console.error('Dashboard initialization failed:', error);
             alert('Failed to load dashboard data. Please try again.');
-            window.location.href = '/admin/login';
+            window.location.href = '/login';
         });
         
     } catch (e) {
         console.error('Invalid user data:', e);
-        window.location.href = '/admin/login';
+        window.location.href = '/login';
     }
 }
 
