@@ -60,6 +60,9 @@ Route::prefix('institution-admin')->group(function () {
     Route::get('/', function() { return view('institution_admin.dashboard'); })->name('institution-admin.dashboard');
     Route::get('/dashboard', function() { return view('institution_admin.dashboard'); })->name('institution-admin.dashboard.main');
     
+    // Template management
+    Route::get('/templates', function() { return view('institution_admin.templates'); })->name('institution-admin.templates');
+    
     // Logbook management
     Route::get('/logbooks', function() { return view('institution_admin.logbooks'); })->name('institution-admin.logbooks');
   
