@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminAuthController;
 use App\Http\Controllers\Api\AuditTrailController;
+use App\Http\Controllers\Api\AvailableDataTypeController;
+use App\Http\Controllers\Api\AvailableTemplateController;
 use App\Http\Controllers\Api\LogbookTemplateController;
 use App\Http\Controllers\Api\LogbookFieldController;
 use App\Http\Controllers\Api\LogbookDataController;
@@ -111,6 +113,39 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/institutions', [\App\Http\Controllers\Api\InstitutionController::class, 'store']);
         Route::put('/institutions/{id}', [\App\Http\Controllers\Api\InstitutionController::class, 'update']);
         Route::delete('/institutions/{id}', [\App\Http\Controllers\Api\InstitutionController::class, 'destroy']);
+    });
+    
+    // ===============================================
+    // Available Data Types routes
+    // ===============================================
+    // Public read access for all authenticated users
+    Route::get('/available-data-types', [AvailableDataTypeController::class, 'index']);
+    Route::get('/available-data-types/active', [AvailableDataTypeController::class, 'activeList']);
+    Route::get('/available-data-types/{id}', [AvailableDataTypeController::class, 'show']);
+    
+    // Admin only - CRUD operations for data types
+    Route::middleware('role:Super Admin,Admin')->group(function () {
+        Route::post('/available-data-types', [AvailableDataTypeController::class, 'store']);
+        Route::put('/available-data-types/{id}', [AvailableDataTypeController::class, 'update']);
+        Route::patch('/available-data-types/{id}/toggle', [AvailableDataTypeController::class, 'toggleActive']);
+        Route::delete('/available-data-types/{id}', [AvailableDataTypeController::class, 'destroy']);
+    });
+    
+    // ===============================================
+    // Available Templates routes
+    // ===============================================
+    // Public read access for all authenticated users
+    Route::get('/available-templates', [AvailableTemplateController::class, 'index']);
+    Route::get('/available-templates/active', [AvailableTemplateController::class, 'activeList']);
+    Route::get('/available-templates/institution/{institutionId}', [AvailableTemplateController::class, 'byInstitution']);
+    Route::get('/available-templates/{id}', [AvailableTemplateController::class, 'show']);
+    
+    // Admin, Manager, and Institution Admin - CRUD operations for templates
+    Route::middleware('role:Super Admin,Admin,Manager,Institution Admin')->group(function () {
+        Route::post('/available-templates', [AvailableTemplateController::class, 'store']);
+        Route::put('/available-templates/{id}', [AvailableTemplateController::class, 'update']);
+        Route::patch('/available-templates/{id}/toggle', [AvailableTemplateController::class, 'toggleActive']);
+        Route::delete('/available-templates/{id}', [AvailableTemplateController::class, 'destroy']);
     });
     
     // Logbook Template routes - Basic access for authenticated users

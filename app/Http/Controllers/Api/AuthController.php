@@ -215,10 +215,15 @@ class AuthController extends Controller
                     // Link existing user with Google account
                     $updateData = [
                         'google_id' => $googleUserData['google_id'],
-                        'avatar_url' => $googleUserData['avatar_url'],
                         'auth_provider' => 'google',
                         'google_verified_at' => now(),
                     ];
+                    
+                    // Only set Google avatar if user doesn't have a custom one
+                    $hasCustomAvatar = $user->avatar_url && str_contains($user->avatar_url, 'storage/avatars/');
+                    if (!$hasCustomAvatar) {
+                        $updateData['avatar_url'] = $googleUserData['avatar_url'];
+                    }
                     
                     // Set random password if user doesn't have one
                     if (GoogleAuthHelper::needsRandomPassword($user->password, 'google')) {
@@ -254,10 +259,19 @@ class AuthController extends Controller
                 }
             } else {
                 // Update existing Google user data
-                $user->update([
-                    'avatar_url' => $googleUserData['avatar_url'],
+                // Only update avatar_url if user doesn't have a custom avatar (stored in our server)
+                $updateData = [
                     'last_login' => now(),
-                ]);
+                ];
+                
+                // Only update avatar if user hasn't set a custom one
+                // Custom avatars are stored in our storage (contain 'storage/avatars/')
+                $hasCustomAvatar = $user->avatar_url && str_contains($user->avatar_url, 'storage/avatars/');
+                if (!$hasCustomAvatar) {
+                    $updateData['avatar_url'] = $googleUserData['avatar_url'];
+                }
+                
+                $user->update($updateData);
                 
                 $action = 'GOOGLE_LOGIN';
                 $description = 'User logged in via Google authentication';
@@ -284,6 +298,7 @@ class AuthController extends Controller
                         'id' => $user->id,
                         'name' => $user->name,
                         'email' => $user->email,
+                        'phone_number' => $user->phone_number,
                         'avatar_url' => $user->avatar_url,
                         'auth_provider' => $user->auth_provider,
                         'status' => $user->status,
