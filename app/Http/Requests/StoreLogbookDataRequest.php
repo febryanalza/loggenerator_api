@@ -38,20 +38,37 @@ class StoreLogbookDataRequest extends FormRequest
                 $dataType = json_decode($field->data_type);
                 
                 switch ($dataType) {
-                    case 'teks':
+                    case 'text':
+                    case 'textarea':
                         $rules["data.{$fieldName}"] = 'sometimes|string';
                         break;
-                    case 'angka':
+                    case 'number':
                         $rules["data.{$fieldName}"] = 'sometimes|numeric';
                         break;
-                    case 'gambar':
+                    case 'image':
                         $rules["data.{$fieldName}"] = 'sometimes|string'; // Assuming we store filenames
                         break;
-                    case 'tanggal':
+                    case 'date':
                         $rules["data.{$fieldName}"] = 'sometimes|date_format:Y-m-d';
                         break;
-                    case 'jam':
+                    case 'time':
                         $rules["data.{$fieldName}"] = 'sometimes|date_format:H:i';
+                        break;
+                    case 'datetime':
+                        $rules["data.{$fieldName}"] = 'sometimes|date_format:Y-m-d H:i:s';
+                        break;
+                    case 'url':
+                        $rules["data.{$fieldName}"] = 'sometimes|url';
+                        break;
+                    case 'phone':
+                        $rules["data.{$fieldName}"] = 'sometimes|string';
+                        break;
+                    case 'currency':
+                    case 'percentage':
+                        $rules["data.{$fieldName}"] = 'sometimes|numeric';
+                        break;
+                    case 'location':
+                        $rules["data.{$fieldName}"] = 'sometimes|string';
                         break;
                 }
             }

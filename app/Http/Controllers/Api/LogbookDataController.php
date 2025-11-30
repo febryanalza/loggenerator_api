@@ -89,7 +89,7 @@ class LogbookDataController extends Controller
     {
         // Get image type fields
         $imageFields = $template->fields->filter(function ($field) {
-            return json_decode($field->data_type) === 'gambar';
+            return json_decode($field->data_type) === 'image';
         })->pluck('name')->toArray();
         
         // Skip if no image fields
@@ -572,7 +572,7 @@ class LogbookDataController extends Controller
         try {
             // Get image type fields
             $imageFields = $logbookData->template->fields->filter(function ($field) {
-                return json_decode($field->data_type) === 'gambar';
+                return json_decode($field->data_type) === 'image';
             })->pluck('name')->toArray();
             
             if (empty($imageFields)) {
