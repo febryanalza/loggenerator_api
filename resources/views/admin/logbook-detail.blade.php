@@ -33,10 +33,14 @@
                 <div>
                     <h1 id="template-name" class="text-3xl font-bold text-gray-900 mb-2"></h1>
                     <p id="template-description" class="text-gray-600 mb-4"></p>
-                    <div class="flex items-center space-x-6 text-sm text-gray-500">
+                    <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500">
                         <div class="flex items-center">
                             <i class="fas fa-user mr-2"></i>
                             <span>Dibuat oleh: <span id="template-creator" class="font-medium"></span></span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-building mr-2"></i>
+                            <span>Institusi: <span id="template-institution" class="font-medium"></span></span>
                         </div>
                         <div class="flex items-center">
                             <i class="fas fa-calendar mr-2"></i>
@@ -322,7 +326,14 @@ function displayTemplateHeader(template, summary) {
         day: 'numeric'
     }) : 'Unknown';
     
-    document.getElementById('template-creator').textContent = 'Administrator'; // Default since we don't have creator info
+    // Display creator (from owner relationship)
+    const creatorName = template.owner?.name || 'Unknown';
+    document.getElementById('template-creator').textContent = creatorName;
+    
+    // Display institution
+    const institutionName = template.institution?.name || '-';
+    document.getElementById('template-institution').textContent = institutionName;
+    
     document.getElementById('template-date').textContent = createdDate;
 
     // Update statistics

@@ -83,7 +83,7 @@
                             Pembuat
                         </th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Tanggal Dibuat
+                            Institusi
                         </th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                             Jumlah Entri
@@ -284,8 +284,17 @@ const TemplatesManager = {
                     </div>
                 </td>
                 <td class="px-6 py-4">
-                    <div class="text-sm text-gray-900">${LogbookManagement.formatDate(template.created_at)}</div>
-                    <div class="text-xs text-gray-500">${LogbookManagement.formatTime(template.created_at)}</div>
+                    ${template.institution_name 
+                        ? `<div class="flex items-center">
+                            <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-building text-green-600 text-xs"></i>
+                            </div>
+                            <div class="ml-2">
+                                <div class="text-sm font-medium text-gray-900">${LogbookManagement.escapeHtml(template.institution_name)}</div>
+                            </div>
+                        </div>`
+                        : `<span class="text-gray-400">-</span>`
+                    }
                 </td>
                 <td class="px-6 py-4">
                     <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
