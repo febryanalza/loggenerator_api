@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\AvailableDataType;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreLogbookFieldRequest extends FormRequest
@@ -21,9 +22,13 @@ class StoreLogbookFieldRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Get active data types from database
+        $validDataTypes = AvailableDataType::active()->pluck('name')->toArray();
+        $validDataTypesString = implode(',', $validDataTypes);
+
         return [
             'name' => 'required|string|max:100',
-            'data_type' => 'required|in:"teks","angka","gambar","tanggal","jam"',
+            'data_type' => 'required|string|in:' . $validDataTypesString,
             'template_id' => 'required|exists:logbook_template,id',
         ];
     }
@@ -35,8 +40,11 @@ class StoreLogbookFieldRequest extends FormRequest
      */
     public function messages(): array
     {
+        // Get active data types for error message
+        $validDataTypes = AvailableDataType::active()->pluck('name')->toArray();
+        
         return [
-            'data_type.in' => 'The data type must be one of: "teks", "angka", "gambar", "tanggal", "jam"',
+            'data_type.in' => 'Tipe data tidak valid. Tipe yang tersedia: ' . implode(', ', $validDataTypes),
         ];
     }
 }

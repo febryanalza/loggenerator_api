@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreLogbookFieldRequest;
 use App\Http\Resources\LogbookFieldResource;
+use App\Models\AvailableDataType;
 use App\Models\LogbookField;
 use App\Models\LogbookTemplate;
 use App\Models\AuditLog;
@@ -63,12 +64,18 @@ class LogbookFieldController extends Controller
      */
     public function storeBatch(Request $request)
     {
+        // Get active data types from database
+        $validDataTypes = AvailableDataType::active()->pluck('name')->toArray();
+        $validDataTypesString = implode(',', $validDataTypes);
+
         // Validate the request
         $validator = validator($request->all(), [
             'template_id' => 'required|exists:logbook_template,id',
             'fields' => 'required|array|min:1',
             'fields.*.name' => 'required|string|max:100',
-            'fields.*.data_type' => 'required|in:"teks","angka","gambar","tanggal","jam"',
+            'fields.*.data_type' => 'required|string|in:' . $validDataTypesString,
+        ], [
+            'fields.*.data_type.in' => 'Tipe data tidak valid. Tipe yang tersedia: ' . implode(', ', $validDataTypes),
         ]);
 
         if ($validator->fails()) {
@@ -151,10 +158,16 @@ class LogbookFieldController extends Controller
      */
     public function update(Request $request, $id)
     {
+        // Get active data types from database
+        $validDataTypes = AvailableDataType::active()->pluck('name')->toArray();
+        $validDataTypesString = implode(',', $validDataTypes);
+
         // Validate the request
         $validator = validator($request->all(), [
             'name' => 'required|string|max:100',
-            'data_type' => 'required|in:"teks","angka","gambar","tanggal","jam"',
+            'data_type' => 'required|string|in:' . $validDataTypesString,
+        ], [
+            'data_type.in' => 'Tipe data tidak valid. Tipe yang tersedia: ' . implode(', ', $validDataTypes),
         ]);
 
         if ($validator->fails()) {
