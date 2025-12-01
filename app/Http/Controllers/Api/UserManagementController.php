@@ -79,7 +79,7 @@ class UserManagementController extends Controller
             $user = User::create($userData);
 
             // Assign role to user
-            $user->assignRole($roleName);
+            $user->assignRole([$roleName]);
 
             // Get current user role for audit log
             $currentUserRole = $currentUser->getRoleNames()->first();
@@ -648,7 +648,7 @@ class UserManagementController extends Controller
             ]);
 
             // Assign role to user
-            $user->assignRole($roleName);
+            $user->assignRole([$roleName]);
 
             // Get institution name
             $institution = Institution::find($currentUser->institution_id);

@@ -48,9 +48,10 @@ Route::prefix('admin')->group(function () {
     // Admin pages
     Route::get('/user-management', function() { return view('admin.user-management'); })->name('admin.user-management');
     Route::get('/institution-management', function() { return view('admin.institution-management'); })->name('admin.institution-management');
+    Route::get('/role-permission-manager', function() { return view('admin.role-permission-manager'); })->name('admin.role-permission-manager');
     Route::get('/logbook-management', function() { return view('admin.logbook-management'); })->name('admin.logbook-management');
     Route::get('/content-management', function() { return view('admin.content-management'); })->name('admin.content-management');
-    Route::get('/transactions', function() { return view('admin.transactions'); })->name('admin.transactions');
+    Route::get('/reports-analytics', function() { return view('admin.reports-analytics'); })->name('admin.reports-analytics');
     Route::get('/logbook/{id}', function() { return view('admin.logbook-detail'); })->name('admin.logbook-detail');
 });
 

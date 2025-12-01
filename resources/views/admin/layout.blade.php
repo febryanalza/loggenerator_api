@@ -166,9 +166,15 @@
                 <span class="ml-auto bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">Dev</span>
             </a>
             
-            <a href="{{ route('admin.transactions') }}" class="sidebar-item flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 {{ request()->routeIs('admin.transactions') ? 'active' : '' }}">
-                <i class="fas fa-exchange-alt w-5 h-5 mr-3"></i>
-                <span class="font-medium">Transaksi & Aktivitas</span>
+            <a href="{{ route('admin.role-permission-manager') }}" class="sidebar-item flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 {{ request()->routeIs('admin.role-permission-manager') ? 'active' : '' }}">
+                <i class="fas fa-user-shield w-5 h-5 mr-3"></i>
+                <span class="font-medium">Role & Permission</span>
+                <span class="ml-auto bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">New</span>
+            </a>
+            
+            <a href="{{ route('admin.reports-analytics') }}" class="sidebar-item flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 {{ request()->routeIs('admin.reports-analytics') ? 'active' : '' }}">
+                <i class="fas fa-chart-bar w-5 h-5 mr-3"></i>
+                <span class="font-medium">Reports & Analytics</span>
                 <span class="ml-auto bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">New</span>
             </a>
         </nav>

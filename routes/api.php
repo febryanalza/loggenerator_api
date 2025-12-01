@@ -86,6 +86,21 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/action-types', [AuditTrailController::class, 'getActionTypes']);
             Route::get('/export', [AuditTrailController::class, 'exportLogs']);
         });
+        
+        // Reports & Analytics APIs
+        Route::prefix('reports')->group(function () {
+            Route::get('/logbook', [\App\Http\Controllers\Api\ReportsAnalyticsController::class, 'getLogbookReports']);
+            Route::get('/user-activity', [\App\Http\Controllers\Api\ReportsAnalyticsController::class, 'getUserActivityReports']);
+            Route::get('/institution-performance', [\App\Http\Controllers\Api\ReportsAnalyticsController::class, 'getInstitutionPerformance']);
+            Route::get('/export', [\App\Http\Controllers\Api\ReportsAnalyticsController::class, 'exportData']);
+            Route::get('/export-options', [\App\Http\Controllers\Api\ReportsAnalyticsController::class, 'getExportOptions']);
+            Route::get('/dashboard-summary', [\App\Http\Controllers\Api\ReportsAnalyticsController::class, 'getDashboardSummary']);
+            // Scheduled Reports (Dummy)
+            Route::get('/scheduled', [\App\Http\Controllers\Api\ReportsAnalyticsController::class, 'getScheduledReports']);
+            Route::post('/scheduled', [\App\Http\Controllers\Api\ReportsAnalyticsController::class, 'createScheduledReport']);
+            Route::delete('/scheduled/{id}', [\App\Http\Controllers\Api\ReportsAnalyticsController::class, 'deleteScheduledReport']);
+            Route::patch('/scheduled/{id}/toggle', [\App\Http\Controllers\Api\ReportsAnalyticsController::class, 'toggleScheduledReport']);
+        });
     });
     
     // Dashboard API routes
@@ -251,6 +266,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/roles/{id}/users', [RoleController::class, 'getRoleUsers']);
         Route::post('/roles/assign-permissions', [RoleController::class, 'assignPermissions']);
         Route::post('/roles/revoke-permissions', [RoleController::class, 'revokePermissions']);
+        
+        // Role & Permission Manager API routes
+        Route::get('/roles/stats', [RoleController::class, 'getStats']);
+        Route::get('/roles/matrix', [RoleController::class, 'getPermissionMatrix']);
+        Route::post('/roles/matrix/update', [RoleController::class, 'updateRolePermissions']);
+        Route::get('/roles/history', [RoleController::class, 'getRoleAssignmentHistory']);
+        Route::post('/roles/custom', [RoleController::class, 'createCustomRole']);
+        Route::put('/roles/custom/{id}', [RoleController::class, 'updateCustomRole']);
+        Route::delete('/roles/custom/{id}', [RoleController::class, 'deleteCustomRole']);
     });
     
     // Notification routes - All authenticated users can view their notifications
