@@ -241,6 +241,38 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/logbook-entries/{id}', [LogbookDataController::class, 'destroy']);
     });
     
+    // ===============================================
+    // Logbook Export routes
+    // ===============================================
+    Route::prefix('logbook-export')->group(function () {
+        // Export logbook to Word (requires logbook access or admin role)
+        Route::get('/template/{templateId}', [\App\Http\Controllers\Api\LogbookExportController::class, 'exportToWord']);
+        
+        // Get export history for a template (requires logbook access or admin role)
+        Route::get('/template/{templateId}/history', [\App\Http\Controllers\Api\LogbookExportController::class, 'getExportHistory']);
+        
+        // Get current user's export history (all templates they have access to)
+        Route::get('/my-exports', [\App\Http\Controllers\Api\LogbookExportController::class, 'getMyExports']);
+        
+        // Get single export details (requires logbook access or admin role)
+        Route::get('/{exportId}', [\App\Http\Controllers\Api\LogbookExportController::class, 'getExportDetail']);
+        
+        // Download export by ID (requires logbook access or admin role)
+        Route::get('/{exportId}/download', [\App\Http\Controllers\Api\LogbookExportController::class, 'downloadExport']);
+        
+        // Delete specific export (requires appropriate permission)
+        Route::delete('/{exportId}', [\App\Http\Controllers\Api\LogbookExportController::class, 'deleteExport']);
+        
+        // Administrative routes (Super Admin, Admin, Manager, Institution Admin)
+        Route::middleware('role:Super Admin|Admin|Manager|Institution Admin')->group(function () {
+            // Get export statistics
+            Route::get('/admin/stats', [\App\Http\Controllers\Api\LogbookExportController::class, 'getExportStats']);
+            
+            // Cleanup old exports
+            Route::delete('/admin/cleanup', [\App\Http\Controllers\Api\LogbookExportController::class, 'cleanupExports']);
+        });
+    });
+    
     // Permission routes - View access for Admin+, Create operations Super Admin only
     Route::middleware('role:Super Admin, Admin')->group(function () {
         Route::get('/permissions', [PermissionController::class, 'index']);
