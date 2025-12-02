@@ -244,7 +244,7 @@ class LogbookExportController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to export logbook. Please try again.',
-                'error' => config('app.debug') ? $e->getMessage() : null
+                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -440,7 +440,7 @@ class LogbookExportController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to export logbook to PDF. Please try again.',
-                'error' => config('app.debug') ? $e->getMessage() : null
+                'error' => $e->getMessage()
             ], 500);
         }
     }
