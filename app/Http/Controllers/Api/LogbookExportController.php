@@ -7,6 +7,7 @@ use App\Models\LogbookTemplate;
 use App\Models\LogbookData;
 use App\Models\LogbookExport;
 use App\Models\AuditLog;
+use App\Models\UserLogbookAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
@@ -111,6 +112,10 @@ class LogbookExportController extends Controller
                     'normalText'
                 );
             }
+
+            // Add contributor section
+            $contributors = $this->getContributorsByTemplate($templateId);
+            $this->addContributorSection($section, $contributors);
 
             // Add footer with export info
             $this->addDocumentFooter($section, $user);
@@ -302,6 +307,9 @@ class LogbookExportController extends Controller
             // Get fields ordered based on JSON data order from first entry
             $fields = $this->getOrderedFields($template, $logbookData);
 
+            // Get contributors for the template
+            $contributors = $this->getContributorsByTemplate($templateId);
+
             // Generate PDF using blade view
             $pdf = Pdf::loadView('exports.logbook-pdf', [
                 'template' => $template,
@@ -309,6 +317,7 @@ class LogbookExportController extends Controller
                 'fields' => $fields,
                 'user' => $user,
                 'exportDate' => now(),
+                'contributors' => $contributors,
             ]);
 
             // Set paper size and orientation
@@ -1499,5 +1508,88 @@ class LogbookExportController extends Controller
             ]);
             $cell->addText($imageUrl, 'tableCell');
         }
+    }
+
+    /**
+     * Get contributors/users with access to a template, grouped by role
+     * Order: Supervisor, Owner, Editor, Viewer (displayed as "Anggota")
+     */
+    private function getContributorsByTemplate(string $templateId): array
+    {
+        $contributors = [
+            'Supervisor' => [],
+            'Owner' => [],
+            'Editor' => [],
+            'Anggota' => [], // Viewer displayed as "Anggota"
+        ];
+
+        // Get all user access for this template with user and role info
+        $accessRecords = UserLogbookAccess::with(['user:id,name,email', 'logbookRole:id,name'])
+            ->where('logbook_template_id', $templateId)
+            ->get();
+
+        foreach ($accessRecords as $access) {
+            $userName = $access->user?->name ?? '-';
+            $roleName = $access->logbookRole?->name ?? '';
+
+            switch ($roleName) {
+                case 'Supervisor':
+                    $contributors['Supervisor'][] = $userName;
+                    break;
+                case 'Owner':
+                    $contributors['Owner'][] = $userName;
+                    break;
+                case 'Editor':
+                    $contributors['Editor'][] = $userName;
+                    break;
+                case 'Viewer':
+                    $contributors['Anggota'][] = $userName;
+                    break;
+            }
+        }
+
+        return $contributors;
+    }
+
+    /**
+     * Add contributor section to Word document
+     */
+    private function addContributorSection($section, array $contributors): void
+    {
+        $section->addTextBreak(1);
+        $section->addText('KONTRIBUTOR', 'sectionHeader');
+        $section->addTextBreak(0);
+
+        // Table style
+        $tableStyle = [
+            'borderSize' => 6,
+            'borderColor' => 'e2e8f0',
+            'cellMargin' => 80,
+        ];
+
+        $table = $section->addTable($tableStyle);
+
+        // Define cell styles
+        $labelCellStyle = [
+            'bgColor' => 'f7fafc',
+            'valign' => 'center',
+        ];
+        $valueCellStyle = [
+            'valign' => 'center',
+        ];
+
+        // Role order for display
+        $roleOrder = ['Supervisor', 'Owner', 'Editor', 'Anggota'];
+
+        foreach ($roleOrder as $role) {
+            $names = $contributors[$role] ?? [];
+            $displayValue = !empty($names) ? implode(', ', $names) : '-';
+
+            $tableRow = $table->addRow();
+            $tableRow->addCell(3000, $labelCellStyle)->addText($role, 'boldText');
+            $tableRow->addCell(7000, $valueCellStyle)->addText($displayValue, 'normalText');
+        }
+
+        $section->addTextBreak(1);
     }
 }

@@ -318,6 +318,27 @@
         <p class="summary">Total: {{ $logbookData->count() }} entri data</p>
     @endif
 
+    <!-- Contributor Section -->
+    <div class="section-header">KONTRIBUTOR</div>
+    <table class="identity-table">
+        <tr>
+            <td class="label">Supervisor</td>
+            <td class="value">{{ !empty($contributors['Supervisor']) ? implode(', ', $contributors['Supervisor']) : '-' }}</td>
+        </tr>
+        <tr>
+            <td class="label">Owner</td>
+            <td class="value">{{ !empty($contributors['Owner']) ? implode(', ', $contributors['Owner']) : '-' }}</td>
+        </tr>
+        <tr>
+            <td class="label">Editor</td>
+            <td class="value">{{ !empty($contributors['Editor']) ? implode(', ', $contributors['Editor']) : '-' }}</td>
+        </tr>
+        <tr>
+            <td class="label">Anggota</td>
+            <td class="value">{{ !empty($contributors['Anggota']) ? implode(', ', $contributors['Anggota']) : '-' }}</td>
+        </tr>
+    </table>
+
     <!-- Footer -->
     <div class="footer">
         <p>─────────────────────────────────────────────────────────────────────────</p>
