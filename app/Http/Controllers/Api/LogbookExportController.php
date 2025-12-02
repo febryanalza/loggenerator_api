@@ -34,6 +34,14 @@ class LogbookExportController extends Controller
         $filename = null;
 
         try {
+            // Validate templateId is a proper UUID to avoid DB cast errors
+            if (!\Illuminate\Support\Str::isUuid($templateId)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid template ID format',
+                    'error' => 'templateId must be a valid UUID'
+                ], 422);
+            }
             // Check if ZIP extension is loaded (required for PHPWord)
             if (!extension_loaded('zip')) {
                 Log::error('PHP ZIP extension is not loaded. Required for Word document export.');
@@ -263,6 +271,14 @@ class LogbookExportController extends Controller
         $filename = null;
 
         try {
+            // Validate templateId is a proper UUID to avoid DB cast errors
+            if (!\Illuminate\Support\Str::isUuid($templateId)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid template ID format',
+                    'error' => 'templateId must be a valid UUID'
+                ], 422);
+            }
             // Get the logbook template with relationships
             $template = LogbookTemplate::with(['fields', 'institution', 'owner'])
                 ->findOrFail($templateId);
