@@ -100,15 +100,42 @@ class LogbookExportController extends Controller
             // Generate filename
             $filename = $this->generateFilename($template);
             
-            // Ensure export directory exists
+            // Ensure export directory exists with proper error handling
             $exportPath = 'export_logbook';
-            if (!Storage::disk('public')->exists($exportPath)) {
-                Storage::disk('public')->makeDirectory($exportPath);
+            $fullExportDir = storage_path('app/public/' . $exportPath);
+            
+            // Create directory if it doesn't exist (using PHP's mkdir for reliability)
+            if (!is_dir($fullExportDir)) {
+                // Try to create directory with recursive flag and proper permissions
+                if (!mkdir($fullExportDir, 0755, true) && !is_dir($fullExportDir)) {
+                    Log::error('Failed to create export directory', [
+                        'path' => $fullExportDir,
+                        'user_id' => $user->id
+                    ]);
+                    
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to create export directory. Please contact administrator.'
+                    ], 500);
+                }
+            }
+            
+            // Verify directory is writable
+            if (!is_writable($fullExportDir)) {
+                Log::error('Export directory is not writable', [
+                    'path' => $fullExportDir,
+                    'user_id' => $user->id
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Export directory is not writable. Please contact administrator.'
+                ], 500);
             }
 
             // Save file
             $relativePath = $exportPath . '/' . $filename;
-            $fullPath = storage_path('app/public/' . $relativePath);
+            $fullPath = $fullExportDir . '/' . $filename;
             $objWriter = IOFactory::createWriter($phpWord, 'Word2007');
             $objWriter->save($fullPath);
 
