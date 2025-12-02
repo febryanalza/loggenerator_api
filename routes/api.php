@@ -246,7 +246,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // ===============================================
     Route::prefix('logbook-export')->group(function () {
         // Export logbook to Word (requires logbook access or admin role)
-        Route::get('/template/{templateId}', [\App\Http\Controllers\Api\LogbookExportController::class, 'exportToWord']);
+        Route::get('/template/{templateId}/word', [\App\Http\Controllers\Api\LogbookExportController::class, 'exportToWord']);
+        
+        // Export logbook to PDF (requires logbook access or admin role)
+        Route::get('/template/{templateId}/pdf', [\App\Http\Controllers\Api\LogbookExportController::class, 'exportToPdf']);
         
         // Get export history for a template (requires logbook access or admin role)
         Route::get('/template/{templateId}/history', [\App\Http\Controllers\Api\LogbookExportController::class, 'getExportHistory']);

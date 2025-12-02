@@ -16,6 +16,7 @@ use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\Style\Font;
 use PhpOffice\PhpWord\SimpleType\Jc;
 use PhpOffice\PhpWord\SimpleType\TblWidth;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class LogbookExportController extends Controller
 {
@@ -243,6 +244,202 @@ class LogbookExportController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to export logbook. Please try again.',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    /**
+     * Export logbook template with all its data to PDF document
+     *
+     * @param Request $request
+     * @param string $templateId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function exportToPdf(Request $request, string $templateId)
+    {
+        $user = $request->user();
+        $export = null;
+        $filename = null;
+
+        try {
+            // Get the logbook template with relationships
+            $template = LogbookTemplate::with(['fields', 'institution', 'creator'])
+                ->findOrFail($templateId);
+
+            // Check user access to this template
+            $hasAccess = $this->checkUserAccess($user, $template);
+            
+            if (!$hasAccess) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to export this logbook'
+                ], 403);
+            }
+
+            // Get all data for this template
+            $logbookData = LogbookData::where('template_id', $templateId)
+                ->with(['writer', 'verifier'])
+                ->orderBy('created_at', 'asc')
+                ->get();
+
+            // Get fields ordered by name
+            $fields = $template->fields->sortBy('name');
+
+            // Generate PDF using blade view
+            $pdf = Pdf::loadView('exports.logbook-pdf', [
+                'template' => $template,
+                'logbookData' => $logbookData,
+                'fields' => $fields,
+                'user' => $user,
+                'exportDate' => now(),
+            ]);
+
+            // Set paper size and orientation
+            $pdf->setPaper('a4', 'portrait');
+            
+            // Set PDF options for better rendering
+            $pdf->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'defaultFont' => 'sans-serif',
+            ]);
+
+            // Generate filename
+            $filename = $this->generatePdfFilename($template);
+            
+            // Ensure export directory exists with proper error handling
+            $exportPath = 'export_logbook';
+            $fullExportDir = storage_path('app/public/' . $exportPath);
+            
+            // Create directory if it doesn't exist
+            if (!is_dir($fullExportDir)) {
+                if (!mkdir($fullExportDir, 0755, true) && !is_dir($fullExportDir)) {
+                    Log::error('Failed to create export directory for PDF', [
+                        'path' => $fullExportDir,
+                        'user_id' => $user->id
+                    ]);
+                    
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to create export directory. Please contact administrator.'
+                    ], 500);
+                }
+            }
+            
+            // Verify directory is writable
+            if (!is_writable($fullExportDir)) {
+                Log::error('Export directory is not writable for PDF', [
+                    'path' => $fullExportDir,
+                    'user_id' => $user->id
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Export directory is not writable. Please contact administrator.'
+                ], 500);
+            }
+
+            // Save file
+            $relativePath = $exportPath . '/' . $filename;
+            $fullPath = $fullExportDir . '/' . $filename;
+            $pdf->save($fullPath);
+
+            // Get file size
+            $fileSize = filesize($fullPath);
+
+            // Generate public URL
+            $fileUrl = url('storage/' . $relativePath);
+
+            // Calculate expiration (7 days from now)
+            $expiresAt = now()->addDays(7);
+
+            // Create export record in database
+            $export = LogbookExport::create([
+                'template_id' => $template->id,
+                'exported_by' => $user->id,
+                'file_name' => $filename,
+                'file_type' => 'pdf',
+                'file_path' => $relativePath,
+                'file_url' => $fileUrl,
+                'file_size' => $fileSize,
+                'total_entries' => $logbookData->count(),
+                'total_fields' => $template->fields->count(),
+                'status' => 'completed',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'expires_at' => $expiresAt,
+            ]);
+
+            // Create audit log
+            AuditLog::create([
+                'user_id' => $user->id,
+                'action' => 'EXPORT_LOGBOOK_PDF',
+                'description' => "User exported logbook '{$template->name}' to PDF document",
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Logbook exported to PDF successfully',
+                'data' => [
+                    'id' => $export->id,
+                    'template_id' => $export->template_id,
+                    'template_name' => $template->name,
+                    'file_name' => $export->file_name,
+                    'file_type' => $export->file_type,
+                    'file_url' => $export->file_url,
+                    'file_size' => $export->file_size,
+                    'file_size_formatted' => $export->formatted_file_size,
+                    'total_entries' => $export->total_entries,
+                    'total_fields' => $export->total_fields,
+                    'status' => $export->status,
+                    'exported_by' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                    ],
+                    'expires_at' => $export->expires_at->toIso8601String(),
+                    'created_at' => $export->created_at->toIso8601String(),
+                ]
+            ]);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Logbook template not found'
+            ], 404);
+
+        } catch (\Exception $e) {
+            // Create failed export record
+            if (isset($template)) {
+                LogbookExport::create([
+                    'template_id' => $template->id,
+                    'exported_by' => $user->id,
+                    'file_name' => $filename ?? 'unknown',
+                    'file_type' => 'pdf',
+                    'file_path' => '',
+                    'file_url' => '',
+                    'file_size' => 0,
+                    'total_entries' => 0,
+                    'total_fields' => 0,
+                    'status' => 'failed',
+                    'error_message' => $e->getMessage(),
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+            }
+
+            Log::error('Failed to export logbook to PDF: ' . $e->getMessage(), [
+                'template_id' => $templateId,
+                'user_id' => $user?->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to export logbook to PDF. Please try again.',
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -1148,6 +1345,18 @@ class LogbookExportController extends Controller
         $randomStr = Str::random(6);
         
         return "logbook_{$safeName}_{$timestamp}_{$randomStr}.docx";
+    }
+
+    /**
+     * Generate unique filename for PDF export
+     */
+    private function generatePdfFilename(LogbookTemplate $template): string
+    {
+        $safeName = Str::slug($template->name);
+        $timestamp = now()->format('Ymd_His');
+        $randomStr = Str::random(6);
+        
+        return "logbook_{$safeName}_{$timestamp}_{$randomStr}.pdf";
     }
 
     /**
