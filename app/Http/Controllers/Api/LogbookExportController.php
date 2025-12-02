@@ -299,8 +299,8 @@ class LogbookExportController extends Controller
                 ->orderBy('created_at', 'asc')
                 ->get();
 
-            // Get fields ordered by name
-            $fields = $template->fields->sortBy('name');
+            // Get fields ordered based on JSON data order from first entry
+            $fields = $this->getOrderedFields($template, $logbookData);
 
             // Generate PDF using blade view
             $pdf = Pdf::loadView('exports.logbook-pdf', [
@@ -1169,8 +1169,8 @@ class LogbookExportController extends Controller
             return;
         }
 
-        // Get fields ordered by name
-        $fields = $template->fields->sortBy('name');
+        // Get fields ordered based on JSON data order from first entry
+        $fields = $this->getOrderedFields($template, $logbookData);
         
         // Calculate column widths dynamically
         $totalWidth = 9500; // Total available width in twips
@@ -1229,8 +1229,16 @@ class LogbookExportController extends Controller
             // Field values
             $entryData = $entry->data ?? [];
             foreach ($fields as $field) {
-                $value = $this->formatFieldValue($entryData[$field->name] ?? '-', $field->data_type);
-                $dataRow->addCell($fieldColumnWidth, $rowStyle)->addText($value, 'tableCell');
+                $rawValue = $entryData[$field->name] ?? '-';
+                $cell = $dataRow->addCell($fieldColumnWidth, $rowStyle);
+                
+                // Handle image type - embed image directly if possible
+                if ($field->data_type === 'image' && $rawValue !== '-' && !empty($rawValue)) {
+                    $this->addImageToCell($cell, $rawValue);
+                } else {
+                    $value = $this->formatFieldValue($rawValue, $field->data_type);
+                    $cell->addText($value, 'tableCell');
+                }
             }
             
             // Writer
@@ -1388,6 +1396,108 @@ class LogbookExportController extends Controller
             return number_format($bytes / 1024, 2) . ' KB';
         } else {
             return $bytes . ' bytes';
+        }
+    }
+
+    /**
+     * Get fields ordered based on JSON data order from first entry
+     * This ensures columns appear in the same order as the JSON data
+     */
+    private function getOrderedFields(LogbookTemplate $template, $logbookData): \Illuminate\Support\Collection
+    {
+        // If no data, return fields as-is (by created_at order)
+        if ($logbookData->isEmpty()) {
+            return $template->fields;
+        }
+
+        // Get first entry's data to determine field order
+        $firstEntry = $logbookData->first();
+        $firstEntryData = $firstEntry->data ?? [];
+        
+        // Get the order of keys from JSON data
+        $jsonKeyOrder = array_keys($firstEntryData);
+        
+        // Create a map of field name to field object
+        $fieldsMap = $template->fields->keyBy('name');
+        
+        // Build ordered collection based on JSON key order
+        $orderedFields = collect();
+        foreach ($jsonKeyOrder as $key) {
+            if ($fieldsMap->has($key)) {
+                $orderedFields->push($fieldsMap->get($key));
+            }
+        }
+        
+        // Add any fields that weren't in the JSON (shouldn't happen normally)
+        foreach ($template->fields as $field) {
+            if (!$orderedFields->contains('id', $field->id)) {
+                $orderedFields->push($field);
+            }
+        }
+        
+        return $orderedFields;
+    }
+
+    /**
+     * Add image to a table cell in Word document
+     * Downloads and embeds the image if accessible, otherwise shows link
+     */
+    private function addImageToCell($cell, string $imageUrl): void
+    {
+        try {
+            // Try to download the image
+            $imageContent = @file_get_contents($imageUrl);
+            
+            if ($imageContent === false) {
+                // If download fails, just show the URL as link
+                $cell->addText($imageUrl, 'tableCell');
+                return;
+            }
+            
+            // Create temp file for the image
+            $tempFile = tempnam(sys_get_temp_dir(), 'logbook_img_');
+            file_put_contents($tempFile, $imageContent);
+            
+            // Get image info
+            $imageInfo = @getimagesize($tempFile);
+            
+            if ($imageInfo === false) {
+                // Not a valid image, show URL
+                @unlink($tempFile);
+                $cell->addText($imageUrl, 'tableCell');
+                return;
+            }
+            
+            // Calculate image dimensions (max width 150px, maintain aspect ratio)
+            $maxWidth = 150;
+            $maxHeight = 100;
+            $width = $imageInfo[0];
+            $height = $imageInfo[1];
+            
+            // Calculate scale factor
+            $scaleWidth = $maxWidth / $width;
+            $scaleHeight = $maxHeight / $height;
+            $scale = min($scaleWidth, $scaleHeight, 1); // Don't upscale
+            
+            $newWidth = (int)($width * $scale);
+            $newHeight = (int)($height * $scale);
+            
+            // Add image to cell
+            $cell->addImage($tempFile, [
+                'width' => $newWidth,
+                'height' => $newHeight,
+                'alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER,
+            ]);
+            
+            // Clean up temp file
+            @unlink($tempFile);
+            
+        } catch (\Exception $e) {
+            // On any error, just show the URL
+            Log::warning('Failed to embed image in Word export: ' . $e->getMessage(), [
+                'url' => $imageUrl
+            ]);
+            $cell->addText($imageUrl, 'tableCell');
         }
     }
 }

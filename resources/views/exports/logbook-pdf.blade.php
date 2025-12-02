@@ -129,6 +129,20 @@
             color: #c05621;
         }
 
+        /* Image styles for embedded images */
+        .data-table img {
+            max-width: 80px;
+            max-height: 60px;
+            height: auto;
+            border-radius: 3px;
+            object-fit: contain;
+        }
+
+        .image-cell {
+            text-align: center;
+            vertical-align: middle;
+        }
+
         /* No Data Message */
         .no-data {
             text-align: center;
@@ -277,7 +291,16 @@
                             $entryData = $entry->data ?? [];
                         @endphp
                         @foreach($fields as $field)
-                            <td>{{ formatPdfFieldValue($entryData[$field->name] ?? '-', $field->data_type) }}</td>
+                            @php
+                                $rawValue = $entryData[$field->name] ?? '-';
+                            @endphp
+                            @if($field->data_type === 'image' && $rawValue !== '-' && !empty($rawValue))
+                                <td class="image-cell">
+                                    <img src="{{ $rawValue }}" alt="{{ $field->name }}" onerror="this.style.display='none'; this.insertAdjacentText('afterend', '[Image unavailable]');" />
+                                </td>
+                            @else
+                                <td>{{ formatPdfFieldValue($rawValue, $field->data_type) }}</td>
+                            @endif
                         @endforeach
                         <td class="text-center">{{ $entry->writer?->name ?? '-' }}</td>
                         <td class="text-center">
