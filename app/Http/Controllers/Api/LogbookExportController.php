@@ -33,6 +33,15 @@ class LogbookExportController extends Controller
         $filename = null;
 
         try {
+            // Check if ZIP extension is loaded (required for PHPWord)
+            if (!extension_loaded('zip')) {
+                Log::error('PHP ZIP extension is not loaded. Required for Word document export.');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Server configuration error: ZIP extension is required for export. Please contact administrator.'
+                ], 500);
+            }
+
             // Get the logbook template with relationships
             $template = LogbookTemplate::with(['fields', 'institution', 'creator'])
                 ->findOrFail($templateId);
@@ -1002,7 +1011,7 @@ class LogbookExportController extends Controller
             $dataRow = $table->addRow();
             
             // Row number
-            $dataRow->addCell($numColumn, $rowStyle)->addText($rowNum, 'tableCell', ['alignment' => Jc::CENTER]);
+            $dataRow->addCell($numColumn, $rowStyle)->addText((string) $rowNum, 'tableCell', ['alignment' => Jc::CENTER]);
             
             // Field values
             $entryData = $entry->data ?? [];
@@ -1019,7 +1028,7 @@ class LogbookExportController extends Controller
             );
             
             // Status
-            $status = $entry->is_verified ? '✓ Verified' : 'Pending';
+            $status = $entry->is_verified ? 'Verified' : 'Pending';
             $dataRow->addCell(1200, $rowStyle)->addText($status, 'tableCell', ['alignment' => Jc::CENTER]);
             
             $rowNum++;
