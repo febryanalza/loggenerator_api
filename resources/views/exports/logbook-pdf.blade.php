@@ -230,7 +230,7 @@
         </tr>
         <tr>
             <td class="label">Dibuat Oleh</td>
-            <td class="value">{{ $template->creator?->name ?? '-' }}</td>
+            <td class="value">{{ $template->owner?->name ?? '-' }}</td>
         </tr>
         <tr>
             <td class="label">Tanggal Dibuat</td>

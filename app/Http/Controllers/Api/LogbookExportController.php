@@ -44,7 +44,7 @@ class LogbookExportController extends Controller
             }
 
             // Get the logbook template with relationships
-            $template = LogbookTemplate::with(['fields', 'institution', 'creator'])
+            $template = LogbookTemplate::with(['fields', 'institution', 'owner'])
                 ->findOrFail($templateId);
 
             // Check user access to this template
@@ -264,7 +264,7 @@ class LogbookExportController extends Controller
 
         try {
             // Get the logbook template with relationships
-            $template = LogbookTemplate::with(['fields', 'institution', 'creator'])
+            $template = LogbookTemplate::with(['fields', 'institution', 'owner'])
                 ->findOrFail($templateId);
 
             // Check user access to this template
@@ -1124,7 +1124,7 @@ class LogbookExportController extends Controller
             ['Nama Template', $template->name],
             ['Deskripsi', $template->description ?? '-'],
             ['Institution', $template->institution?->name ?? '-'],
-            ['Dibuat Oleh', $template->creator?->name ?? '-'],
+            ['Dibuat Oleh', $template->owner?->name ?? '-'],
             ['Tanggal Dibuat', $template->created_at?->format('d F Y, H:i') ?? '-'],
             ['Terakhir Diupdate', $template->updated_at?->format('d F Y, H:i') ?? '-'],
             ['Jumlah Field', $template->fields->count() . ' field'],
