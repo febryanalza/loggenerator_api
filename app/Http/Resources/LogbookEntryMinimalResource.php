@@ -17,16 +17,18 @@ class LogbookEntryMinimalResource extends JsonResource
     {
         $supervisorCount = $this->getSupervisorCount();
         $verifiedCount = $this->getVerifiedCount();
+        $noSupervisorRequired = $supervisorCount === 0;
 
         return [
             'id' => $this->id,
             'writer_name' => $this->whenLoaded('writer', fn() => $this->writer->name),
-            // is_verified: true only if ALL supervisors have approved (AND logic)
+            // is_verified: true if ALL supervisors approved OR no supervisors assigned
             'is_verified' => $this->isVerified(),
             // Verification progress
             'verification_progress' => [
                 'approved' => $verifiedCount,
                 'total_supervisors' => $supervisorCount,
+                'no_supervisor_required' => $noSupervisorRequired,
             ],
             'created_at' => $this->created_at?->format('Y-m-d H:i'),
             // Only include a preview of data, not full content

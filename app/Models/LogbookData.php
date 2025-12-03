@@ -137,14 +137,16 @@ class LogbookData extends Model
     /**
      * Check if this entry is FULLY verified (all supervisors have approved).
      * Uses AND logic: only true if ALL supervisors have verified.
+     * If no supervisors assigned, automatically returns true (no verification needed).
      */
     public function isVerified(): bool
     {
         $supervisorCount = $this->getSupervisorCount();
         
-        // If no supervisors assigned, consider it not verified
+        // If no supervisors assigned, consider it automatically verified
+        // (no verification process needed for this logbook)
         if ($supervisorCount === 0) {
-            return false;
+            return true;
         }
 
         // Count how many supervisors have approved
@@ -230,6 +232,20 @@ class LogbookData extends Model
     public function getVerificationDetails(): array
     {
         $supervisorCount = $this->getSupervisorCount();
+        
+        // If no supervisors, return special response indicating no verification needed
+        if ($supervisorCount === 0) {
+            return [
+                'total_supervisors' => 0,
+                'approved_count' => 0,
+                'rejected_count' => 0,
+                'pending_count' => 0,
+                'no_supervisor_required' => true,
+                'message' => 'No supervisors assigned - verification not required',
+                'verifications' => [],
+            ];
+        }
+        
         $verifications = $this->verifications()->with('verifier:id,name,email')->get();
         
         $approvedCount = $verifications->where('is_verified', true)->whereNotNull('verified_at')->count();
@@ -241,6 +257,7 @@ class LogbookData extends Model
             'approved_count' => $approvedCount,
             'rejected_count' => $rejectedCount,
             'pending_count' => $pendingCount,
+            'no_supervisor_required' => false,
             'verifications' => $verifications->map(function ($v) {
                 return [
                     'id' => $v->id,

@@ -27,7 +27,7 @@ class LogbookDataSimpleResource extends JsonResource
                 ];
             }),
             'data' => $this->data,
-            // is_verified: true only if ALL supervisors have approved (AND logic)
+            // is_verified: true if ALL supervisors approved OR no supervisors assigned
             'is_verified' => $this->isVerified(),
             // Verification details showing all verifications
             'verification_details' => $verificationDetails,
