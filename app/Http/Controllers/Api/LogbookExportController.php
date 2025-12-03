@@ -68,7 +68,7 @@ class LogbookExportController extends Controller
 
             // Get all data for this template
             $logbookData = LogbookData::where('template_id', $templateId)
-                ->with(['writer', 'verifier'])
+                ->with(['writer', 'verifications.verifier'])
                 ->orderBy('created_at', 'asc')
                 ->get();
 
@@ -300,7 +300,7 @@ class LogbookExportController extends Controller
 
             // Get all data for this template
             $logbookData = LogbookData::where('template_id', $templateId)
-                ->with(['writer', 'verifier'])
+                ->with(['writer', 'verifications.verifier'])
                 ->orderBy('created_at', 'asc')
                 ->get();
 
