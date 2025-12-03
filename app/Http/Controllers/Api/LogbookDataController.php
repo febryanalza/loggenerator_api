@@ -466,12 +466,31 @@ class LogbookDataController extends Controller
             $newData = $this->processImageUploads($request->data, $logbookData->template);
             
             // Merge new data with existing data (partial update)
-            $existingData = $logbookData->data ?? [];
+            // Note: Use getRawOriginal to avoid Laravel's array cast tracking issues with PostgreSQL
+            $existingData = $logbookData->getRawOriginal('data');
+            
+            // Decode if it's a JSON string (raw from database)
+            if (is_string($existingData)) {
+                $existingData = json_decode($existingData, true) ?? [];
+            }
+            
+            // Ensure existingData is an array
+            if (!is_array($existingData)) {
+                $existingData = [];
+            }
+            
             $mergedData = array_merge($existingData, $newData);
             
-            // Update the logbook data
-            $logbookData->data = $mergedData;
-            $logbookData->save();
+            // Update using query builder to avoid Eloquent's dirty tracking issues with JSON/array casts
+            // This prevents the "_originalDataContent" column error in PostgreSQL
+            LogbookData::where('id', $logbookData->id)
+                ->update([
+                    'data' => json_encode($mergedData),
+                    'updated_at' => now(),
+                ]);
+            
+            // Reload the model to get fresh data
+            $logbookData->refresh();
             
             // Determine update context for audit log
             $updateContext = '';

@@ -30,6 +30,16 @@ class LogbookData extends Model
     ];
 
     /**
+     * The attributes that should be hidden for serialization.
+     * This prevents internal Laravel tracking attributes from being exposed.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        '_originalDataContent',
+    ];
+
+    /**
      * The attributes that should be cast.
      *
      * @var array<string, string>
@@ -37,6 +47,23 @@ class LogbookData extends Model
     protected $casts = [
         'data' => 'array',
     ];
+
+    /**
+     * The attributes that should NOT be persisted to the database.
+     * This prevents Laravel's internal dirty tracking attributes from being saved.
+     *
+     * @return array
+     */
+    public static function boot()
+    {
+        parent::boot();
+
+        // Remove any internal tracking attributes before saving
+        static::saving(function ($model) {
+            // Remove Laravel's internal array cast tracking attributes
+            unset($model->attributes['_originalDataContent']);
+        });
+    }
 
     /**
      * Get the template that this data belongs to.
