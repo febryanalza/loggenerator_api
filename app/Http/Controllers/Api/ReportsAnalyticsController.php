@@ -322,7 +322,7 @@ class ReportsAnalyticsController extends Controller
                             $entry->writer->name ?? 'N/A',
                             $entry->writer->email ?? 'N/A',
                             json_encode($entry->data),
-                            $entry->is_verified ? 'Yes' : 'No',
+                            $entry->isVerified() ? 'Yes' : 'No',
                             $entry->created_at->format('Y-m-d H:i:s')
                         ];
                     });

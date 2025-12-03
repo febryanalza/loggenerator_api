@@ -15,6 +15,9 @@ class LogbookDataSimpleResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        // Get verification details
+        $verificationDetails = $this->getVerificationDetails();
+
         return [
             'id' => $this->id,
             'writer' => $this->whenLoaded('writer', function () {
@@ -23,17 +26,11 @@ class LogbookDataSimpleResource extends JsonResource
                     'name' => $this->writer->name,
                 ];
             }),
-            'verifier' => $this->whenLoaded('verifier', function () {
-                return [
-                    'id' => $this->verifier->id,
-                    'name' => $this->verifier->name,
-                ];
-            }),
             'data' => $this->data,
-            'is_verified' => $this->is_verified,
-            'verified_by' => $this->verified_by,
-            'verified_at' => $this->verified_at?->format('Y-m-d H:i:s'),
-            'verification_notes' => $this->verification_notes,
+            // is_verified: true only if ALL supervisors have approved (AND logic)
+            'is_verified' => $this->isVerified(),
+            // Verification details showing all verifications
+            'verification_details' => $verificationDetails,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
         ];

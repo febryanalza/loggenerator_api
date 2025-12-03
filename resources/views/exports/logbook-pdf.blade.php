@@ -304,10 +304,19 @@
                         @endforeach
                         <td class="text-center">{{ $entry->writer?->name ?? '-' }}</td>
                         <td class="text-center">
-                            @if($entry->is_verified)
-                                <span class="badge badge-success">✓ Verified</span>
+                            @php
+                                $isVerified = $entry->isVerified();
+                                $verifiedCount = $entry->getVerifiedCount();
+                                $supervisorCount = $entry->getSupervisorCount();
+                            @endphp
+                            @if($supervisorCount === 0)
+                                <span class="badge badge-secondary">No Supervisor</span>
+                            @elseif($isVerified)
+                                <span class="badge badge-success">✓ Verified ({{ $verifiedCount }}/{{ $supervisorCount }})</span>
+                            @elseif($verifiedCount > 0)
+                                <span class="badge badge-warning">Partial ({{ $verifiedCount }}/{{ $supervisorCount }})</span>
                             @else
-                                <span class="badge badge-warning">Pending</span>
+                                <span class="badge badge-warning">Pending (0/{{ $supervisorCount }})</span>
                             @endif
                         </td>
                     </tr>

@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Laravel\Sanctum\Sanctum;
 use App\Models\PersonalAccessToken;
+use App\Models\UserLogbookAccess;
+use App\Observers\UserLogbookAccessObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,5 +30,8 @@ class AppServiceProvider extends ServiceProvider
         
         // Menghilangkan data wrapper untuk API resources
         JsonResource::withoutWrapping();
+
+        // Register observers
+        UserLogbookAccess::observe(UserLogbookAccessObserver::class);
     }
 }

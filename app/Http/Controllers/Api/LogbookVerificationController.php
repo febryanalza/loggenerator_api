@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\LogbookData;
 use App\Models\LogbookTemplate;
+use App\Models\LogbookDataVerification;
 use App\Models\UserLogbookAccess;
 use App\Models\LogbookRole;
 use App\Models\AuditLog;
@@ -59,8 +60,12 @@ class LogbookVerificationController extends Controller
                 ], 403);
             }
 
-            // Build query
-            $query = LogbookData::with(['writer:id,name,email', 'verifier:id,name,email', 'template:id,name'])
+            // Build query with verifications relationship
+            $query = LogbookData::with([
+                    'writer:id,name,email', 
+                    'template:id,name',
+                    'verifications.verifier:id,name,email'
+                ])
                 ->where('template_id', $templateId);
 
             // Filter by verification status
@@ -74,6 +79,18 @@ class LogbookVerificationController extends Controller
             $query->orderBy('created_at', 'desc');
 
             $data = $query->paginate($perPage);
+
+            // Transform data to include verification summary
+            $data->getCollection()->transform(function ($item) use ($currentUser) {
+                $item->verification_summary = [
+                    'total_verifications' => $item->verifications->count(),
+                    'verified_count' => $item->verifications->where('is_verified', true)->count(),
+                    'rejected_count' => $item->verifications->where('is_verified', false)->count(),
+                    'is_verified_by_me' => $item->isVerifiedBy($currentUser->id),
+                    'my_verification' => $item->getVerificationFrom($currentUser->id),
+                ];
+                return $item;
+            });
 
             // Log activity
             AuditLog::create([
@@ -112,6 +129,7 @@ class LogbookVerificationController extends Controller
 
     /**
      * Verify a specific logbook data entry (Supervisor only)
+     * Now supports multiple verifiers per data entry
      *
      * @param Request $request
      * @param string $dataId
@@ -147,16 +165,17 @@ class LogbookVerificationController extends Controller
                 ], 403);
             }
 
-            // Check if data is already verified
-            if ($logbookData->isVerified()) {
+            // Check if user has already verified this entry (approval)
+            $existingVerification = $logbookData->getVerificationFrom($currentUser->id);
+            if ($existingVerification && $existingVerification->is_verified) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data entry is already verified.'
+                    'message' => 'You have already verified this data entry.'
                 ], 400);
             }
 
-            // Verify the data
-            $logbookData->markAsVerified(
+            // Create or update verification
+            $verification = $logbookData->verify(
                 $currentUser->id,
                 $request->get('verification_notes')
             );
@@ -172,6 +191,7 @@ class LogbookVerificationController extends Controller
                 'details' => json_encode([
                     'template_id' => $logbookData->template_id,
                     'writer_id' => $logbookData->writer_id,
+                    'verification_id' => $verification->id,
                     'verification_notes' => $request->get('verification_notes'),
                     'verified_at' => now()
                 ])
@@ -179,15 +199,19 @@ class LogbookVerificationController extends Controller
 
             DB::commit();
 
+            // Get all verifications for this data
+            $allVerifications = $logbookData->verifications()->with('verifier:id,name,email')->get();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Data entry verified successfully',
                 'data' => [
                     'id' => $logbookData->id,
-                    'is_verified' => $logbookData->is_verified,
-                    'verified_by' => $logbookData->verified_by,
-                    'verified_at' => $logbookData->verified_at,
-                    'verification_notes' => $logbookData->verification_notes
+                    'verification' => $verification,
+                    'all_verifications' => $allVerifications,
+                    'total_verifiers' => $allVerifications->count(),
+                    'approved_count' => $allVerifications->where('is_verified', true)->count(),
+                    'rejected_count' => $allVerifications->where('is_verified', false)->count(),
                 ]
             ]);
 
@@ -208,13 +232,117 @@ class LogbookVerificationController extends Controller
     }
 
     /**
-     * Unverify a specific logbook data entry (Supervisor only)
+     * Reject a specific logbook data entry (Supervisor only)
+     * Changed from unverify to reject - records rejection instead of removing
      *
      * @param Request $request
      * @param string $dataId
      * @return \Illuminate\Http\JsonResponse
      */
-    public function unverifyData(Request $request, string $dataId)
+    public function rejectData(Request $request, string $dataId)
+    {
+        $validator = Validator::make($request->all(), [
+            'rejection_notes' => 'required|string|max:1000'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation Error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $currentUser = $request->user();
+            
+            // Get the logbook data entry
+            $logbookData = LogbookData::with(['template', 'writer'])->findOrFail($dataId);
+
+            // Check if user is a supervisor for this template
+            if (!$this->isSupervisorOfTemplate($currentUser->id, $logbookData->template_id)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. Only supervisors can reject data entries.'
+                ], 403);
+            }
+
+            // Check if user has already rejected this entry
+            $existingVerification = $logbookData->getVerificationFrom($currentUser->id);
+            if ($existingVerification && !$existingVerification->is_verified) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You have already rejected this data entry.'
+                ], 400);
+            }
+
+            // Create or update verification as rejected
+            $verification = $logbookData->reject(
+                $currentUser->id,
+                $request->get('rejection_notes')
+            );
+
+            // Log activity
+            AuditLog::create([
+                'user_id' => $currentUser->id,
+                'action' => 'reject_data',
+                'model_type' => 'LogbookData',
+                'model_id' => $dataId,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'details' => json_encode([
+                    'template_id' => $logbookData->template_id,
+                    'writer_id' => $logbookData->writer_id,
+                    'verification_id' => $verification->id,
+                    'rejection_notes' => $request->get('rejection_notes'),
+                    'rejected_at' => now()
+                ])
+            ]);
+
+            DB::commit();
+
+            // Get all verifications for this data
+            $allVerifications = $logbookData->verifications()->with('verifier:id,name,email')->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data entry rejected successfully',
+                'data' => [
+                    'id' => $logbookData->id,
+                    'verification' => $verification,
+                    'all_verifications' => $allVerifications,
+                    'total_verifiers' => $allVerifications->count(),
+                    'approved_count' => $allVerifications->where('is_verified', true)->count(),
+                    'rejected_count' => $allVerifications->where('is_verified', false)->count(),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Error rejecting data: ' . $e->getMessage(), [
+                'user_id' => $request->user()->id ?? 'unknown',
+                'data_id' => $dataId,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reject data entry'
+            ], 500);
+        }
+    }
+
+    /**
+     * Remove verification/rejection from a specific logbook data entry (Supervisor only)
+     *
+     * @param Request $request
+     * @param string $dataId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function removeVerification(Request $request, string $dataId)
     {
         try {
             DB::beginTransaction();
@@ -228,25 +356,25 @@ class LogbookVerificationController extends Controller
             if (!$this->isSupervisorOfTemplate($currentUser->id, $logbookData->template_id)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized. Only supervisors can unverify data entries.'
+                    'message' => 'Unauthorized. Only supervisors can remove their verification.'
                 ], 403);
             }
 
-            // Check if data is not verified
-            if (!$logbookData->isVerified()) {
+            // Check if user has a verification for this entry
+            if (!$logbookData->hasVerificationFrom($currentUser->id)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data entry is not verified.'
+                    'message' => 'You have not verified or rejected this data entry.'
                 ], 400);
             }
 
-            // Unverify the data
-            $logbookData->markAsUnverified();
+            // Remove the verification
+            $logbookData->removeVerification($currentUser->id);
 
             // Log activity
             AuditLog::create([
                 'user_id' => $currentUser->id,
-                'action' => 'unverify_data',
+                'action' => 'remove_verification',
                 'model_type' => 'LogbookData',
                 'model_id' => $dataId,
                 'ip_address' => $request->ip(),
@@ -254,28 +382,31 @@ class LogbookVerificationController extends Controller
                 'details' => json_encode([
                     'template_id' => $logbookData->template_id,
                     'writer_id' => $logbookData->writer_id,
-                    'unverified_at' => now()
+                    'removed_at' => now()
                 ])
             ]);
 
             DB::commit();
 
+            // Get all remaining verifications for this data
+            $allVerifications = $logbookData->verifications()->with('verifier:id,name,email')->get();
+
             return response()->json([
                 'success' => true,
-                'message' => 'Data entry unverified successfully',
+                'message' => 'Verification removed successfully',
                 'data' => [
                     'id' => $logbookData->id,
-                    'is_verified' => $logbookData->is_verified,
-                    'verified_by' => $logbookData->verified_by,
-                    'verified_at' => $logbookData->verified_at,
-                    'verification_notes' => $logbookData->verification_notes
+                    'all_verifications' => $allVerifications,
+                    'total_verifiers' => $allVerifications->count(),
+                    'approved_count' => $allVerifications->where('is_verified', true)->count(),
+                    'rejected_count' => $allVerifications->where('is_verified', false)->count(),
                 ]
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
             
-            Log::error('Error unverifying data: ' . $e->getMessage(), [
+            Log::error('Error removing verification: ' . $e->getMessage(), [
                 'user_id' => $request->user()->id ?? 'unknown',
                 'data_id' => $dataId,
                 'trace' => $e->getTraceAsString()
@@ -283,7 +414,65 @@ class LogbookVerificationController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to unverify data entry'
+                'message' => 'Failed to remove verification'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all verifications for a specific data entry (Supervisor only)
+     *
+     * @param Request $request
+     * @param string $dataId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getVerifications(Request $request, string $dataId)
+    {
+        try {
+            $currentUser = $request->user();
+            
+            // Get the logbook data entry
+            $logbookData = LogbookData::with(['template', 'writer'])->findOrFail($dataId);
+
+            // Check if user is a supervisor for this template
+            if (!$this->isSupervisorOfTemplate($currentUser->id, $logbookData->template_id)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. Only supervisors can view verifications.'
+                ], 403);
+            }
+
+            // Get all verifications with verifier details
+            $verifications = $logbookData->verifications()
+                ->with('verifier:id,name,email')
+                ->orderBy('verified_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Verifications retrieved successfully',
+                'data' => [
+                    'logbook_data_id' => $logbookData->id,
+                    'verifications' => $verifications,
+                    'summary' => [
+                        'total_verifiers' => $verifications->count(),
+                        'approved_count' => $verifications->where('is_verified', true)->count(),
+                        'rejected_count' => $verifications->where('is_verified', false)->count(),
+                        'my_verification' => $logbookData->getVerificationFrom($currentUser->id),
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error getting verifications: ' . $e->getMessage(), [
+                'user_id' => $request->user()->id ?? 'unknown',
+                'data_id' => $dataId,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve verifications'
             ], 500);
         }
     }
@@ -326,11 +515,32 @@ class LogbookVerificationController extends Controller
             
             $verificationPercentage = $totalEntries > 0 ? round(($verifiedEntries / $totalEntries) * 100, 2) : 0;
 
+            // Get unique verifiers count
+            $totalVerifications = LogbookDataVerification::whereHas('data', function ($query) use ($templateId) {
+                $query->where('template_id', $templateId);
+            })->count();
+
+            $uniqueVerifiers = LogbookDataVerification::whereHas('data', function ($query) use ($templateId) {
+                $query->where('template_id', $templateId);
+            })->distinct('verifier_id')->count('verifier_id');
+
             // Recent verification activity (last 7 days)
-            $recentVerifications = LogbookData::where('template_id', $templateId)
+            $recentVerifications = LogbookDataVerification::whereHas('data', function ($query) use ($templateId) {
+                $query->where('template_id', $templateId);
+            })
                 ->where('verified_at', '>=', now()->subDays(7))
-                ->verified()
                 ->count();
+
+            // Top verifiers
+            $topVerifiers = LogbookDataVerification::whereHas('data', function ($query) use ($templateId) {
+                $query->where('template_id', $templateId);
+            })
+                ->select('verifier_id', DB::raw('COUNT(*) as verification_count'))
+                ->groupBy('verifier_id')
+                ->orderBy('verification_count', 'desc')
+                ->limit(5)
+                ->with('verifier:id,name,email')
+                ->get();
 
             return response()->json([
                 'success' => true,
@@ -340,7 +550,10 @@ class LogbookVerificationController extends Controller
                     'verified_entries' => $verifiedEntries,
                     'unverified_entries' => $unverifiedEntries,
                     'verification_percentage' => $verificationPercentage,
-                    'recent_verifications' => $recentVerifications
+                    'total_verifications' => $totalVerifications,
+                    'unique_verifiers' => $uniqueVerifiers,
+                    'recent_verifications' => $recentVerifications,
+                    'top_verifiers' => $topVerifiers
                 ]
             ]);
 
@@ -398,6 +611,7 @@ class LogbookVerificationController extends Controller
             }
 
             $verifiedCount = 0;
+            $skippedCount = 0;
             $errors = [];
 
             foreach ($dataIds as $dataId) {
@@ -410,14 +624,14 @@ class LogbookVerificationController extends Controller
                         continue;
                     }
 
-                    // Skip if already verified
-                    if ($logbookData->isVerified()) {
-                        $errors[] = "Data entry already verified: {$dataId}";
+                    // Skip if already verified by this user
+                    if ($logbookData->isVerifiedBy($currentUser->id)) {
+                        $skippedCount++;
                         continue;
                     }
 
                     // Verify the data
-                    $logbookData->markAsVerified($currentUser->id, $verificationNotes);
+                    $verification = $logbookData->verify($currentUser->id, $verificationNotes);
                     $verifiedCount++;
 
                     // Log activity for each verification
@@ -430,6 +644,7 @@ class LogbookVerificationController extends Controller
                         'user_agent' => $request->userAgent(),
                         'details' => json_encode([
                             'template_id' => $logbookData->template_id,
+                            'verification_id' => $verification->id,
                             'verification_notes' => $verificationNotes,
                             'verified_at' => now()
                         ])
@@ -447,6 +662,7 @@ class LogbookVerificationController extends Controller
                 'message' => "Successfully verified {$verifiedCount} data entries",
                 'data' => [
                     'verified_count' => $verifiedCount,
+                    'skipped_count' => $skippedCount,
                     'total_requested' => count($dataIds),
                     'errors' => $errors
                 ]
@@ -464,6 +680,120 @@ class LogbookVerificationController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to bulk verify data entries'
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk reject multiple data entries (Supervisor only)
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function bulkRejectData(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'template_id' => 'required|uuid|exists:logbook_template,id',
+            'data_ids' => 'required|array|min:1',
+            'data_ids.*' => 'required|uuid|exists:logbook_datas,id',
+            'rejection_notes' => 'required|string|max:1000'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation Error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $currentUser = $request->user();
+            $templateId = $request->template_id;
+            $dataIds = $request->data_ids;
+            $rejectionNotes = $request->rejection_notes;
+
+            // Check if user is a supervisor for this template FIRST
+            if (!$this->isSupervisorOfTemplate($currentUser->id, $templateId)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. Only supervisors can reject data for this template.'
+                ], 403);
+            }
+
+            $rejectedCount = 0;
+            $skippedCount = 0;
+            $errors = [];
+
+            foreach ($dataIds as $dataId) {
+                try {
+                    $logbookData = LogbookData::findOrFail($dataId);
+
+                    // Verify that the data belongs to the template
+                    if ($logbookData->template_id !== $templateId) {
+                        $errors[] = "Data entry {$dataId} does not belong to template {$templateId}";
+                        continue;
+                    }
+
+                    // Check if already rejected by this user
+                    $existingVerification = $logbookData->getVerificationFrom($currentUser->id);
+                    if ($existingVerification && !$existingVerification->is_verified) {
+                        $skippedCount++;
+                        continue;
+                    }
+
+                    // Reject the data
+                    $verification = $logbookData->reject($currentUser->id, $rejectionNotes);
+                    $rejectedCount++;
+
+                    // Log activity for each rejection
+                    AuditLog::create([
+                        'user_id' => $currentUser->id,
+                        'action' => 'bulk_reject_data',
+                        'model_type' => 'LogbookData',
+                        'model_id' => $dataId,
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                        'details' => json_encode([
+                            'template_id' => $logbookData->template_id,
+                            'verification_id' => $verification->id,
+                            'rejection_notes' => $rejectionNotes,
+                            'rejected_at' => now()
+                        ])
+                    ]);
+
+                } catch (\Exception $e) {
+                    $errors[] = "Failed to reject data entry {$dataId}: " . $e->getMessage();
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully rejected {$rejectedCount} data entries",
+                'data' => [
+                    'rejected_count' => $rejectedCount,
+                    'skipped_count' => $skippedCount,
+                    'total_requested' => count($dataIds),
+                    'errors' => $errors
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Error bulk rejecting data: ' . $e->getMessage(), [
+                'user_id' => $request->user()->id ?? 'unknown',
+                'data_ids' => $request->data_ids ?? [],
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to bulk reject data entries'
             ], 500);
         }
     }

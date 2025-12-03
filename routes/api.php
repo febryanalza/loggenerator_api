@@ -210,10 +210,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Logbook Data Verification routes (Supervisor only)
     Route::prefix('logbook-data-verification')->middleware('logbook.access:Supervisor,Owner')->group(function () {
         Route::get('/data', [LogbookVerificationController::class, 'getDataForVerification']);
+        Route::get('/data/{dataId}/verifications', [LogbookVerificationController::class, 'getVerifications']);
         Route::post('/data/{dataId}/verify', [LogbookVerificationController::class, 'verifyData']);
-        Route::post('/data/{dataId}/unverify', [LogbookVerificationController::class, 'unverifyData']);
+        Route::post('/data/{dataId}/reject', [LogbookVerificationController::class, 'rejectData']);
+        Route::delete('/data/{dataId}/verification', [LogbookVerificationController::class, 'removeVerification']);
         Route::get('/stats', [LogbookVerificationController::class, 'getVerificationStats']);
         Route::post('/bulk-verify', [LogbookVerificationController::class, 'bulkVerifyData']);
+        Route::post('/bulk-reject', [LogbookVerificationController::class, 'bulkRejectData']);
     });
     
     // Logbook Field routes - Template management

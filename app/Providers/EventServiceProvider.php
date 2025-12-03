@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Events\LogbookAccessGranted;
+use App\Events\SupervisorAddedToTemplate;
+use App\Listeners\CreateVerificationRecordsForNewSupervisor;
 use App\Listeners\SendLogbookAccessNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
@@ -16,6 +18,9 @@ class EventServiceProvider extends ServiceProvider
     protected $listen = [
         LogbookAccessGranted::class => [
             SendLogbookAccessNotification::class,
+        ],
+        SupervisorAddedToTemplate::class => [
+            CreateVerificationRecordsForNewSupervisor::class,
         ],
     ];
 

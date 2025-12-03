@@ -501,10 +501,26 @@ function createEntryCard(entry) {
     // Get first few data fields to show as preview
     const dataPreview = entry.data ? Object.entries(entry.data).slice(0, 3) : [];
     
+    // Multi-verifier system: is_verified is true only if ALL supervisors approved
     const isVerified = entry.is_verified || false;
-    const statusBadge = isVerified 
-        ? '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-check mr-1"></i>Terverifikasi</span>'
-        : '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"><i class="fas fa-clock mr-1"></i>Pending</span>';
+    const verificationDetails = entry.verification_details || {};
+    const totalSupervisors = verificationDetails.total_supervisors || 0;
+    const approvedCount = verificationDetails.approved_count || 0;
+    const pendingCount = verificationDetails.pending_count || 0;
+    const rejectedCount = verificationDetails.rejected_count || 0;
+    
+    let statusBadge;
+    if (totalSupervisors === 0) {
+        statusBadge = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600"><i class="fas fa-user-slash mr-1"></i>No Supervisor</span>';
+    } else if (isVerified) {
+        statusBadge = `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-check-double mr-1"></i>Verified (${approvedCount}/${totalSupervisors})</span>`;
+    } else if (rejectedCount > 0) {
+        statusBadge = `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800"><i class="fas fa-times mr-1"></i>Rejected (${rejectedCount})</span>`;
+    } else if (approvedCount > 0) {
+        statusBadge = `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"><i class="fas fa-hourglass-half mr-1"></i>Partial (${approvedCount}/${totalSupervisors})</span>`;
+    } else {
+        statusBadge = `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"><i class="fas fa-clock mr-1"></i>Pending (0/${totalSupervisors})</span>`;
+    }
 
     return `
         <div class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition duration-200">
@@ -545,11 +561,24 @@ function createEntryRow(entry) {
     const writerName = entry.writer?.name || 'Unknown User';
     
     const dataFields = entry.data ? Object.values(entry.data) : [];
-    const isVerified = entry.is_verified || false;
     
-    const statusBadge = isVerified 
-        ? '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-check mr-1"></i>Terverifikasi</span>'
-        : '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Pending</span>';
+    // Multi-verifier system
+    const isVerified = entry.is_verified || false;
+    const verificationDetails = entry.verification_details || {};
+    const totalSupervisors = verificationDetails.total_supervisors || 0;
+    const approvedCount = verificationDetails.approved_count || 0;
+    const rejectedCount = verificationDetails.rejected_count || 0;
+    
+    let statusBadge;
+    if (totalSupervisors === 0) {
+        statusBadge = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">No Supervisor</span>';
+    } else if (isVerified) {
+        statusBadge = `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-check-double mr-1"></i>${approvedCount}/${totalSupervisors}</span>`;
+    } else if (rejectedCount > 0) {
+        statusBadge = `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">${rejectedCount} Rejected</span>`;
+    } else {
+        statusBadge = `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">${approvedCount}/${totalSupervisors}</span>`;
+    }
 
     return `
         <tr class="hover:bg-gray-50">
@@ -632,26 +661,88 @@ function displayEntryModal(entry) {
     const writerName = entry.writer?.name || 'Unknown User';
     const writerEmail = entry.writer?.email || '';
 
+    // Multi-verifier system
     const isVerified = entry.is_verified || false;
-    const verificationSection = isVerified ? `
-        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div class="flex items-center mb-2">
-                <i class="fas fa-check-circle text-green-600 mr-2"></i>
-                <span class="font-medium text-green-800">Status: Terverifikasi</span>
+    const verificationDetails = entry.verification_details || {};
+    const totalSupervisors = verificationDetails.total_supervisors || 0;
+    const approvedCount = verificationDetails.approved_count || 0;
+    const pendingCount = verificationDetails.pending_count || 0;
+    const rejectedCount = verificationDetails.rejected_count || 0;
+    const verifications = verificationDetails.verifications || [];
+    
+    // Build verification list HTML
+    const verificationListHtml = verifications.length > 0 ? verifications.map(v => {
+        const verifier = v.verifier || {};
+        const statusIcon = v.is_verified ? 'fa-check-circle text-green-500' : 
+                          (v.verified_at ? 'fa-times-circle text-red-500' : 'fa-clock text-gray-400');
+        const statusText = v.is_verified ? 'Approved' : (v.verified_at ? 'Rejected' : 'Pending');
+        const verifiedDate = v.verified_at ? new Date(v.verified_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+        
+        return `
+            <div class="flex items-start gap-3 p-3 bg-white rounded-lg border">
+                <i class="fas ${statusIcon} mt-1"></i>
+                <div class="flex-1">
+                    <div class="font-medium text-gray-800">${verifier.name || 'Unknown'}</div>
+                    <div class="text-xs text-gray-500">${verifier.email || ''}</div>
+                    <div class="text-xs text-gray-600 mt-1">
+                        <span class="font-medium">${statusText}</span>
+                        ${v.verified_at ? ` - ${verifiedDate}` : ''}
+                    </div>
+                    ${v.verification_notes ? `<div class="text-xs text-gray-500 mt-1 italic">"${v.verification_notes}"</div>` : ''}
+                </div>
             </div>
-            <div class="text-sm text-green-700">
-                <p>Diverifikasi pada: ${entry.verified_at ? new Date(entry.verified_at).toLocaleDateString('id-ID') : '-'}</p>
-                ${entry.verification_notes ? `<p class="mt-1">Catatan: ${entry.verification_notes}</p>` : ''}
+        `;
+    }).join('') : '<p class="text-gray-500 text-sm italic">Tidak ada supervisor yang ditugaskan</p>';
+    
+    // Build verification section
+    let verificationSection;
+    if (totalSupervisors === 0) {
+        verificationSection = `
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div class="flex items-center mb-2">
+                    <i class="fas fa-user-slash text-gray-500 mr-2"></i>
+                    <span class="font-medium text-gray-700">Tidak ada Supervisor</span>
+                </div>
+                <p class="text-sm text-gray-600">Template ini belum memiliki supervisor yang ditugaskan.</p>
             </div>
-        </div>
-    ` : `
-        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <div class="flex items-center">
-                <i class="fas fa-clock text-gray-600 mr-2"></i>
-                <span class="font-medium text-gray-800">Status: Menunggu Verifikasi</span>
+        `;
+    } else if (isVerified) {
+        verificationSection = `
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center">
+                        <i class="fas fa-check-double text-green-600 mr-2"></i>
+                        <span class="font-medium text-green-800">Terverifikasi Lengkap</span>
+                    </div>
+                    <span class="text-sm text-green-600 font-medium">${approvedCount}/${totalSupervisors} Supervisor</span>
+                </div>
+                <div class="space-y-2">
+                    ${verificationListHtml}
+                </div>
             </div>
-        </div>
-    `;
+        `;
+    } else {
+        const progressPercent = totalSupervisors > 0 ? Math.round((approvedCount / totalSupervisors) * 100) : 0;
+        verificationSection = `
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center">
+                        <i class="fas fa-hourglass-half text-yellow-600 mr-2"></i>
+                        <span class="font-medium text-yellow-800">Menunggu Verifikasi</span>
+                    </div>
+                    <span class="text-sm text-yellow-700">
+                        ${approvedCount} approved, ${pendingCount} pending${rejectedCount > 0 ? `, ${rejectedCount} rejected` : ''}
+                    </span>
+                </div>
+                <div class="w-full bg-yellow-200 rounded-full h-2 mb-3">
+                    <div class="bg-green-500 h-2 rounded-full" style="width: ${progressPercent}%"></div>
+                </div>
+                <div class="space-y-2">
+                    ${verificationListHtml}
+                </div>
+            </div>
+        `;
+    }
 
     modalContent.innerHTML = `
         <!-- Entry Info -->

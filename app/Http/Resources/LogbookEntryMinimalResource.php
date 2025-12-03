@@ -15,11 +15,19 @@ class LogbookEntryMinimalResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $supervisorCount = $this->getSupervisorCount();
+        $verifiedCount = $this->getVerifiedCount();
+
         return [
             'id' => $this->id,
             'writer_name' => $this->whenLoaded('writer', fn() => $this->writer->name),
-            'is_verified' => $this->is_verified,
-            'verified_at' => $this->verified_at?->format('Y-m-d H:i'),
+            // is_verified: true only if ALL supervisors have approved (AND logic)
+            'is_verified' => $this->isVerified(),
+            // Verification progress
+            'verification_progress' => [
+                'approved' => $verifiedCount,
+                'total_supervisors' => $supervisorCount,
+            ],
             'created_at' => $this->created_at?->format('Y-m-d H:i'),
             // Only include a preview of data, not full content
             'data_preview' => $this->getDataPreview(),
