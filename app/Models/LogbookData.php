@@ -303,4 +303,54 @@ class LogbookData extends Model
     {
         return LogbookDataVerification::removeVerification($this->id, $userId);
     }
+
+    /**
+     * Reset all verifications to pending state.
+     * Used when data is updated and requires re-verification.
+     *
+     * @param string|null $reason Optional reason for the reset
+     * @return int Number of verifications reset
+     */
+    public function resetAllVerifications(?string $reason = null): int
+    {
+        $verifications = $this->verifications()
+            ->whereNotNull('verified_at')
+            ->get();
+
+        $resetCount = 0;
+
+        foreach ($verifications as $verification) {
+            $previousStatus = $verification->is_verified ? 'Approved' : 'Rejected';
+            $previousNote = $verification->verification_notes;
+
+            $newNote = "[RESET] " . ($reason ?? "Data was modified") . " on " . now()->format('Y-m-d H:i:s') . ". ";
+            $newNote .= "Previous status: {$previousStatus}. ";
+            
+            if ($previousNote) {
+                $newNote .= "Previous note: {$previousNote}";
+            }
+
+            $verification->update([
+                'is_verified' => false,
+                'verified_at' => null,
+                'verification_notes' => $newNote,
+            ]);
+
+            $resetCount++;
+        }
+
+        return $resetCount;
+    }
+
+    /**
+     * Check if this entry has any verified verifications that would need reset.
+     *
+     * @return bool
+     */
+    public function hasVerifiedRecords(): bool
+    {
+        return $this->verifications()
+            ->whereNotNull('verified_at')
+            ->exists();
+    }
 }

@@ -1257,12 +1257,9 @@ class LogbookExportController extends Controller
                 ['alignment' => Jc::CENTER]
             );
             
-            // Status - using multi-verifier support
-            $status = $entry->isVerified() ? 'Verified' : 'Pending';
-            $verifiedCount = $entry->getVerifiedCount();
-            if ($verifiedCount > 0) {
-                $status .= " ({$verifiedCount})";
-            }
+            // Status - using multi-verifier support (AND logic)
+            // Only shows "Approved" if ALL supervisors have verified
+            $status = $entry->isVerified() ? 'Approved' : 'Pending';
             $dataRow->addCell(1200, $rowStyle)->addText($status, 'tableCell', ['alignment' => Jc::CENTER]);
             
             $rowNum++;

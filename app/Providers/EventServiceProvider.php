@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use App\Events\LogbookAccessGranted;
+use App\Events\LogbookDataUpdated;
 use App\Events\SupervisorAddedToTemplate;
 use App\Listeners\CreateVerificationRecordsForNewSupervisor;
+use App\Listeners\ResetVerificationsOnDataUpdate;
 use App\Listeners\SendLogbookAccessNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
@@ -21,6 +23,9 @@ class EventServiceProvider extends ServiceProvider
         ],
         SupervisorAddedToTemplate::class => [
             CreateVerificationRecordsForNewSupervisor::class,
+        ],
+        LogbookDataUpdated::class => [
+            ResetVerificationsOnDataUpdate::class,
         ],
     ];
 
