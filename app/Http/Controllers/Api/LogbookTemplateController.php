@@ -384,6 +384,7 @@ class LogbookTemplateController extends Controller
 
     /**
      * Update the specified template.
+     * Supports partial updates - only update fields that are provided.
      * Supports updating institution assignment.
      *
      * @param  \Illuminate\Http\Request  $request
@@ -392,9 +393,9 @@ class LogbookTemplateController extends Controller
      */
     public function update(Request $request, $id)
     {
-        // Validate the request data
+        // Validate the request data - all fields are optional for partial update
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
+            'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string|max:1000',
             'institution_id' => 'nullable|uuid|exists:institutions,id',
         ]);
@@ -410,12 +411,30 @@ class LogbookTemplateController extends Controller
         try {
             $template = LogbookTemplate::findOrFail($id);
             
-            $template->name = $request->name;
-            $template->description = $request->description;
+            $updatedFields = [];
             
-            // Update institution_id if provided
+            // Only update fields that are provided in the request
+            if ($request->has('name')) {
+                $template->name = $request->name;
+                $updatedFields[] = 'name';
+            }
+            
+            if ($request->has('description')) {
+                $template->description = $request->description;
+                $updatedFields[] = 'description';
+            }
+            
             if ($request->has('institution_id')) {
                 $template->institution_id = $request->institution_id;
+                $updatedFields[] = 'institution_id';
+            }
+            
+            // Check if any field was provided
+            if (empty($updatedFields)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No fields provided for update. Please provide at least one field: name, description, or institution_id'
+                ], 422);
             }
             
             $template->save();
@@ -425,7 +444,7 @@ class LogbookTemplateController extends Controller
                 AuditLog::create([
                     'user_id' => Auth::id(),
                     'action' => 'UPDATE_TEMPLATE',
-                    'description' => 'Updated template "' . $template->name . '"',
+                    'description' => 'Updated template "' . $template->name . '" (fields: ' . implode(', ', $updatedFields) . ')',
                     'ip_address' => $request->ip(),
                     'user_agent' => $request->userAgent()
                 ]);
@@ -434,7 +453,8 @@ class LogbookTemplateController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Template updated successfully',
-                'data' => $template
+                'data' => $template,
+                'updated_fields' => $updatedFields
             ]);
         } catch (\Exception $e) {
             return response()->json([
