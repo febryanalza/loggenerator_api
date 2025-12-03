@@ -22,6 +22,7 @@ class LogbookDataController extends Controller
 {
     /**
      * Store a newly created logbook entry in storage.
+     * Supports partial data insertion - fields not provided will be set to null.
      *
      * @param  \App\Http\Requests\StoreLogbookDataRequest  $request
      * @return \Illuminate\Http\JsonResponse
@@ -32,21 +33,23 @@ class LogbookDataController extends Controller
             // Get the template
             $template = LogbookTemplate::with('fields')->findOrFail($request->template_id);
             
-            // Verify all required fields are present
+            // Get all template field names
             $templateFields = $template->fields->pluck('name')->toArray();
             $providedFields = array_keys($request->data);
             
+            // Find fields that were not provided (for partial insert support)
             $missingFields = array_diff($templateFields, $providedFields);
-            if (count($missingFields) > 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Missing required fields',
-                    'missing_fields' => $missingFields
-                ], 422);
+            
+            // Initialize data with provided fields
+            $data = $request->data;
+            
+            // Fill missing fields with null (partial insert support)
+            foreach ($missingFields as $fieldName) {
+                $data[$fieldName] = null;
             }
             
             // Handle image uploads if any
-            $data = $this->processImageUploads($request->data, $template);
+            $data = $this->processImageUploads($data, $template);
             
             // Create the logbook data entry
             $logbookData = new LogbookData();
@@ -61,11 +64,16 @@ class LogbookDataController extends Controller
             // Reload with verifications
             $logbookData->load(['verifications.verifier']);
             
-            // Create audit log
+            // Create audit log with partial data info
+            $auditDescription = 'Created new logbook entry for ' . $template->name;
+            if (count($missingFields) > 0) {
+                $auditDescription .= ' (partial: ' . count($providedFields) . '/' . count($templateFields) . ' fields provided)';
+            }
+            
             AuditLog::create([
                 'user_id' => Auth::id(),
                 'action' => 'CREATE_LOGBOOK_ENTRY',
-                'description' => 'Created new logbook entry for ' . $template->name,
+                'description' => $auditDescription,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent()
             ]);
@@ -73,7 +81,13 @@ class LogbookDataController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Logbook entry created successfully',
-                'data' => new LogbookDataResource($logbookData)
+                'data' => new LogbookDataResource($logbookData),
+                'partial_insert' => count($missingFields) > 0,
+                'fields_info' => [
+                    'provided' => count($providedFields),
+                    'total' => count($templateFields),
+                    'missing_fields' => count($missingFields) > 0 ? array_values($missingFields) : []
+                ]
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
