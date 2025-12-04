@@ -14,6 +14,9 @@
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Admin Token Manager -->
+    <script src="{{ asset('js/admin-token-manager.js') }}"></script>
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -239,7 +242,7 @@
                     <!-- Current Time -->
                     <div class="text-sm text-gray-600">
                         <div id="currentTime"></div>
-                        <div class="text-xs text-gray-400">{{ now()->format('d M Y') }}</div>
+                        <div class="text-xs text-gray-400" id="sessionTimeRemaining">{{ now()->format('d M Y') }}</div>
                     </div>
                 </div>
             </div>
@@ -272,36 +275,10 @@
             }
         }
 
-        // Logout handler with API call
+        // Logout handler using AdminTokenManager
         function handleLogout() {
             if (confirm('Are you sure you want to logout?')) {
-                const token = localStorage.getItem('admin_token');
-                
-                if (token) {
-                    // Call logout API with Bearer token
-                    fetch('/api/admin/logout', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        }
-                    }).finally(() => {
-                        // Clear admin session
-                        localStorage.removeItem('admin_token');
-                        localStorage.removeItem('admin_user');
-                        
-                        // Redirect to homepage (welcome page)
-                        window.location.href = '/';
-                    });
-                } else {
-                    // Clear any remaining data
-                    localStorage.removeItem('admin_token');
-                    localStorage.removeItem('admin_user');
-                    
-                    // Redirect to homepage (welcome page)
-                    window.location.href = '/';
-                }
+                AdminTokenManager.logout();
             }
         }
     

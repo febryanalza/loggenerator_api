@@ -14,6 +14,26 @@ use App\Models\AuditLog;
 class AdminAuthController extends Controller
 {
     /**
+     * Get token expiration hours from config
+     *
+     * @return int
+     */
+    private function getTokenExpirationHours(): int
+    {
+        return (int) config('admin.token_expiration_hours', 4);
+    }
+
+    /**
+     * Get admin roles from config
+     *
+     * @return array
+     */
+    private function getAdminRoles(): array
+    {
+        return config('admin.roles', ['Admin', 'Super Admin', 'Manager', 'Institution Admin']);
+    }
+
+    /**
      * Handle admin login request (Bearer Token)
      */
     public function login(Request $request)
@@ -71,9 +91,12 @@ class AdminAuthController extends Controller
             'user_agent' => $request->userAgent()
         ]);
 
-        // Create token
+        // Create token with expiration for admin dashboard
+        // Mobile app tokens (created via AuthController) have no expiration
         $deviceName = $request->device_name ?? ($request->userAgent() ?? 'Admin Dashboard');
-        $token = $user->createToken($deviceName)->plainTextToken;
+        $tokenExpirationHours = $this->getTokenExpirationHours();
+        $expiresAt = now()->addHours($tokenExpirationHours);
+        $token = $user->createToken($deviceName, ['admin-dashboard'], $expiresAt)->plainTextToken;
 
         // Load institution relationship if exists
         $institution = null;
@@ -98,19 +121,60 @@ class AdminAuthController extends Controller
                     'institution_id' => $user->institution_id,
                     'institution' => $institution,
                 ],
-                'token' => $token
+                'token' => $token,
+                'token_type' => 'Bearer',
+                'expires_at' => $expiresAt->toIso8601String(),
+                'expires_in_seconds' => $tokenExpirationHours * 60 * 60,
             ]
         ]);
     }
 
+    /**
+     * Refresh admin token - extends session for another 4 hours
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function refreshToken(Request $request)
+    {
+        $user = $request->user();
+        
+        // Delete current token
+        $user->currentAccessToken()->delete();
+        
+        // Create new token with fresh expiration
+        $deviceName = $request->device_name ?? ($request->userAgent() ?? 'Admin Dashboard');
+        $tokenExpirationHours = $this->getTokenExpirationHours();
+        $expiresAt = now()->addHours($tokenExpirationHours);
+        $token = $user->createToken($deviceName, ['admin-dashboard'], $expiresAt)->plainTextToken;
+        
+        // Create audit log
+        AuditLog::create([
+            'user_id' => $user->id,
+            'action' => 'ADMIN_TOKEN_REFRESH',
+            'description' => 'Admin token refreshed',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent()
+        ]);
 
+        return response()->json([
+            'success' => true,
+            'message' => 'Token refreshed successfully',
+            'data' => [
+                'token' => $token,
+                'token_type' => 'Bearer',
+                'expires_at' => $expiresAt->toIso8601String(),
+                'expires_in_seconds' => $tokenExpirationHours * 60 * 60,
+            ]
+        ]);
+    }
 
     /**
      * Check if user has admin roles
      */
     private function isAdminUser(User $user): bool
     {
-        $adminRoles = ['Admin', 'Super Admin', 'Manager', 'Institution Admin'];
+        $adminRoles = $this->getAdminRoles();
         
         foreach ($adminRoles as $role) {
             if ($user->hasRole($role)) {

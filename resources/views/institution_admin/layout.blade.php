@@ -14,6 +14,9 @@
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Admin Token Manager -->
+    <script src="{{ asset('js/admin-token-manager.js') }}"></script>
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -241,7 +244,7 @@
                     <!-- Current Time -->
                     <div class="text-sm text-gray-600">
                         <div id="currentTime"></div>
-                        <div class="text-xs text-gray-400">{{ now()->format('d M Y') }}</div>
+                        <div class="text-xs text-gray-400" id="sessionTimeRemaining">{{ now()->format('d M Y') }}</div>
                     </div>
                 </div>
             </div>
@@ -322,46 +325,16 @@
         
         loadUserInfo();
 
-        // Logout handler with API call
+        // Logout handler using AdminTokenManager
         function handleLogout() {
             if (confirm('Apakah Anda yakin ingin keluar?')) {
-                const token = localStorage.getItem('admin_token');
-                
-                if (token) {
-                    // Call logout API with Bearer token
-                    fetch('/api/admin/logout', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        }
-                    }).finally(() => {
-                        clearSessionAndRedirect();
-                    });
-                } else {
-                    clearSessionAndRedirect();
-                }
+                AdminTokenManager.logout();
             }
         }
         
+        // Legacy function kept for compatibility
         function clearSessionAndRedirect() {
-            // Clear admin session
-            localStorage.removeItem('admin_token');
-            localStorage.removeItem('admin_user');
-            
-            // Clear any cached data
-            const keysToRemove = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && (key.includes('_cache') || key.includes('_timestamp'))) {
-                    keysToRemove.push(key);
-                }
-            }
-            keysToRemove.forEach(key => localStorage.removeItem(key));
-            
-            // Redirect to login page
-            window.location.href = '/login';
+            AdminTokenManager.redirectToLogin();
         }
 
         // Alert functions
@@ -447,13 +420,7 @@
             }
         });
         
-        // Check authentication on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            const token = localStorage.getItem('admin_token');
-            if (!token) {
-                window.location.href = '/login';
-            }
-        });
+        // Token check is handled by AdminTokenManager automatically
     </script>
 
     @stack('scripts')

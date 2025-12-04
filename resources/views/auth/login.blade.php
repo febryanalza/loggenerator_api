@@ -274,11 +274,13 @@
                     }
 
                     if (data.success && data.data && data.data.token) {
-                        // Store Bearer Token in localStorage
+                        // Store Bearer Token and expiration in localStorage
                         localStorage.setItem('admin_token', data.data.token);
                         localStorage.setItem('admin_user', JSON.stringify(data.data.user));
+                        localStorage.setItem('admin_token_expires_at', data.data.expires_at);
                         
                         console.log('Bearer Token stored successfully');
+                        console.log('Token expires at:', data.data.expires_at);
                         
                         // Check user role and redirect accordingly
                         const userRoles = data.data.user.roles || [];

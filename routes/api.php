@@ -69,9 +69,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/auth/google/unlink', [AuthController::class, 'unlinkGoogle']);
     
-    // Admin Auth & Dashboard APIs (Bearer Token required)
-    Route::prefix('admin')->middleware('admin')->group(function () {
+    // Admin Auth & Dashboard APIs (Bearer Token required with expiration check)
+    Route::prefix('admin')->middleware(['admin', 'token.expiration'])->group(function () {
         Route::post('/logout', [AdminAuthController::class, 'logout']);
+        Route::post('/refresh-token', [AdminAuthController::class, 'refreshToken']);
         Route::get('/me', [AdminAuthController::class, 'me']);
         Route::get('/stats', [DashboardController::class, 'getStats']);
         Route::get('/user-registrations', [DashboardController::class, 'getUserRegistrations']);

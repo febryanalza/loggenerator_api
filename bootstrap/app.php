@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'logbook.access' => \App\Http\Middleware\CheckLogbookAccess::class,
             'template.owner' => \App\Http\Middleware\CheckTemplateOwnership::class,
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'token.expiration' => \App\Http\Middleware\CheckTokenExpiration::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
