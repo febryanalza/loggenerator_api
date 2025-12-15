@@ -16,7 +16,8 @@ class TestUserSeeder extends Seeder
         User::create([
             'name' => 'Test User',
             'email' => 'test1@example.com',
-            'password' => Hash::make('password')
+            'password' => Hash::make('password'),
+            'email_verified_at' => now(), // Auto-verify test users
         ]);
     }
 }

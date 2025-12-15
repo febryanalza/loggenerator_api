@@ -20,6 +20,9 @@ Dokumentasi lengkap implementasi email verification menggunakan Brevo (Sendinblu
 Sistem email verification memungkinkan:
 - ✅ User yang register via email/password menerima email verifikasi
 - ✅ Google OAuth users otomatis verified (skip email verification)
+- ✅ Admin-created users otomatis verified (skip email verification)
+- ✅ Institution Admin-created users otomatis verified (skip email verification)
+- ✅ Seeder-created users otomatis verified (skip email verification)
 - ✅ Resend verification email jika tidak diterima
 - ✅ Check verification status
 - ✅ Secure signed URLs dengan expiration (60 menit)
@@ -404,6 +407,53 @@ Google users otomatis verified, tidak perlu email verification.
 │  ✅ Success     │
 └─────────────────┘
 ```
+
+### Admin Created User Flow (Skip Verification)
+
+```
+┌─────────────────┐
+│ Admin Creates   │
+│   New User      │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Validate Data  │
+│  & Permissions  │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Create User    │
+│  in Database    │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Auto-set:       │
+│ email_verified_at│
+│ = now()         │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Assign Role     │
+│ & Institution   │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ User Can Login  │
+│  ✅ Success     │
+│ (No Email Sent) │
+└─────────────────┘
+```
+
+**Note:** User yang dibuat oleh:
+- ✅ Super Admin → Auto-verified
+- ✅ Admin → Auto-verified  
+- ✅ Institution Admin → Auto-verified
+- ✅ Database Seeder → Auto-verified
 
 ---
 

@@ -146,6 +146,16 @@ POST /api/auth/google
 - Auto-sets `email_verified_at` for Google users
 - No verification email sent
 
+### 6. Admin Create User (Modified)
+```
+POST /api/users/create (Super Admin/Admin)
+POST /api/institution/add-member (Institution Admin)
+```
+**Changes:**
+- Auto-sets `email_verified_at` when admin creates user
+- No verification email sent
+- Users can login immediately
+
 ---
 
 ## 🔄 How It Works
@@ -158,6 +168,13 @@ User Register → Email Sent → User Clicks Link → Email Verified ✅
 ### Google Login Flow:
 ```
 Google Login → Auto Verified ✅ (no email needed)
+```
+
+### Admin Created Users Flow:
+```
+Admin/Super Admin Creates User → Auto Verified ✅ (no email needed)
+Institution Admin Creates User → Auto Verified ✅ (no email needed)
+Seeder Creates Users → Auto Verified ✅ (no email needed)
 ```
 
 ---

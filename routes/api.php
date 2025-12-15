@@ -44,6 +44,31 @@ Route::get('/health', function () {
     ]);
 });
 
+// Test email endpoint (TEMPORARY - Remove in production)
+Route::post('/test-send-email', function(Request $request) {
+    try {
+        $email = $request->input('email', 'febryanalza@gmail.com');
+        
+        \Illuminate\Support\Facades\Mail::raw('Test email from LogGenerator API - ' . now(), function($message) use ($email) {
+            $message->to($email)
+                    ->subject('Test Email - LogGenerator API');
+        });
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Test email sent successfully!',
+            'email' => $email,
+            'timestamp' => now()
+        ]);
+    } catch (Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to send email',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/auth/google', [AuthController::class, 'googleLogin']);

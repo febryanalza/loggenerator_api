@@ -85,7 +85,7 @@ Topics covered:
 ### Email Verification Setup
 
 For complete email verification implementation with Brevo SMTP:
-📧 **[See EMAIL_VERIFICATION.md](EMAIL_VERIFICATION.md)**
+📧 **[See EMAIL_VERIFICATION.md](doc/EMAIL_VERIFICATION.md)**
 
 Topics covered:
 - Brevo SMTP configuration
@@ -94,6 +94,12 @@ Topics covered:
 - Testing & troubleshooting guide
 - Production deployment checklist
 - Monitoring & best practices
+
+**Update:** Admin-created users now auto-verified:
+✅ **[See ADMIN_AUTO_VERIFY_UPDATE.md](doc/ADMIN_AUTO_VERIFY_UPDATE.md)**
+- Super Admin/Admin creates user → Auto-verified ✅
+- Institution Admin adds member → Auto-verified ✅
+- Self-registration → Still requires email verification 📧
 
 ## API Documentation
 

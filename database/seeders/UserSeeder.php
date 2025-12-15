@@ -20,37 +20,43 @@ class UserSeeder extends Seeder
                 'name' => 'Super Administrator',
                 'email' => 'superadmin@example.com',
                 'password' => Hash::make('password'),
-                'role' => 'Super Admin'
+                'role' => 'Super Admin',
+                'email_verified_at' => now()
             ],
             [
                 'name' => 'System Administrator', 
                 'email' => 'admin@example.com',
                 'password' => Hash::make('password'),
-                'role' => 'Admin'
+                'role' => 'Admin',
+                'email_verified_at' => now()
             ],
             [
                 'name' => 'Department Manager',
                 'email' => 'manager@example.com', 
                 'password' => Hash::make('password'),
-                'role' => 'Manager'
+                'role' => 'Manager',
+                'email_verified_at' => now()
             ],
             [
                 'name' => 'Regular User',
                 'email' => 'user@example.com',
                 'password' => Hash::make('password'),
-                'role' => 'User'
+                'role' => 'User',
+                'email_verified_at' => now()
             ],
             [
                 'name' => 'John Doe',
                 'email' => 'john@example.com',
                 'password' => Hash::make('password'), 
-                'role' => 'User'
+                'role' => 'User',
+                'email_verified_at' => now()
             ],
             [
                 'name' => 'Jane Smith',
                 'email' => 'jane@example.com',
                 'password' => Hash::make('password'),
-                'role' => 'User'
+                'role' => 'User',
+                'email_verified_at' => now()
             ]
         ];
 

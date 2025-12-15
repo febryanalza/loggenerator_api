@@ -66,6 +66,7 @@ class UserManagementController extends Controller
                 'password' => Hash::make($request->password),
                 'phone_number' => $request->phone_number,
                 'status' => 'active',
+                'email_verified_at' => now(), // Auto-verify users created by Admin
                 'last_login' => null,
             ];
 
@@ -644,6 +645,7 @@ class UserManagementController extends Controller
                 'phone_number' => $request->phone_number,
                 'institution_id' => $currentUser->institution_id,
                 'status' => 'active',
+                'email_verified_at' => now(), // Auto-verify users created by Institution Admin
                 'last_login' => null,
             ]);
 
