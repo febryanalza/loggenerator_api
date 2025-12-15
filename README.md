@@ -37,6 +37,8 @@ Laravel-based API system for managing logbook templates and data with role-based
 
 ## Installation
 
+### Local Development
+
 1. Clone repository
 ```bash
 git clone https://github.com/febryanalza/loggenerator_api.git
@@ -66,6 +68,32 @@ php artisan db:seed
 ```bash
 php artisan serve
 ```
+
+### Production Deployment
+
+For complete production deployment guide with Nginx, SSL, and file management:
+📖 **[See DEPLOYMENT.md](DEPLOYMENT.md)**
+
+Topics covered:
+- Server setup (Ubuntu + Nginx + PostgreSQL)
+- SSL certificate configuration with Let's Encrypt
+- File permissions & access management
+- Security best practices
+- Deployment automation scripts
+- Monitoring & maintenance
+
+### Email Verification Setup
+
+For complete email verification implementation with Brevo SMTP:
+📧 **[See EMAIL_VERIFICATION.md](EMAIL_VERIFICATION.md)**
+
+Topics covered:
+- Brevo SMTP configuration
+- Environment variables checklist
+- Email verification API endpoints
+- Testing & troubleshooting guide
+- Production deployment checklist
+- Monitoring & best practices
 
 ## API Documentation
 

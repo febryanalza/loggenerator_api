@@ -5,12 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Traits\HasRoles;
+use App\Notifications\VerifyEmailNotification;
 
 /**
  * User Model with Spatie Permission Support
@@ -30,7 +32,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @method $this syncRoles(string|array|\Spatie\Permission\Contracts\Role ...$roles)
  * @method $this removeRole(string|array|\Spatie\Permission\Contracts\Role $role)
  */
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable, HasUuids, HasRoles;
@@ -235,5 +237,14 @@ class User extends Authenticatable
     public function belongsToInstitution(string $institutionId): bool
     {
         return $this->institution_id === $institutionId;
+    }
+
+    /**
+     * Send the email verification notification.
+     * Override default to use custom notification
+     */
+    public function sendEmailVerificationNotification()
+    {
+        $this->notify(new VerifyEmailNotification());
     }
 }

@@ -54,11 +54,14 @@ class AuthController extends Controller
             $user->assignRole('User');
         }
 
+        // Send email verification notification
+        $user->sendEmailVerificationNotification();
+
         // Create audit log
         \App\Models\AuditLog::create([
             'user_id' => $user->id,
             'action' => 'REGISTER',
-            'description' => 'User registered successfully',
+            'description' => 'User registered successfully - Email verification sent',
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent()
         ]);
@@ -69,15 +72,17 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Registration successful',
+            'message' => 'Registration successful. Please check your email to verify your account.',
             'data' => [
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
                     'status' => $user->status,
+                    'email_verified' => false,
                 ],
-                'token' => $token
+                'token' => $token,
+                'verification_sent' => true
             ]
         ], 201);
     }
@@ -217,6 +222,7 @@ class AuthController extends Controller
                         'google_id' => $googleUserData['google_id'],
                         'auth_provider' => 'google',
                         'google_verified_at' => now(),
+                        'email_verified_at' => $googleUserData['email_verified'] ? now() : $user->email_verified_at,
                     ];
                     
                     // Only set Google avatar if user doesn't have a custom one
@@ -353,6 +359,127 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Google account unlinked successfully'
+        ]);
+    }
+
+    /**
+     * Resend email verification notification
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function resendVerification(Request $request)
+    {
+        $user = $request->user();
+
+        // Check if email already verified
+        if ($user->hasVerifiedEmail()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email already verified'
+            ], 400);
+        }
+
+        // Check if user registered via Google (skip verification)
+        if ($user->auth_provider === 'google' && $user->google_verified_at) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Google authenticated users do not need email verification'
+            ], 400);
+        }
+
+        // Send verification email
+        $user->sendEmailVerificationNotification();
+
+        // Create audit log
+        \App\Models\AuditLog::create([
+            'user_id' => $user->id,
+            'action' => 'EMAIL_VERIFICATION_RESEND',
+            'description' => 'Email verification link resent',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Verification email has been resent'
+        ]);
+    }
+
+    /**
+     * Verify email address
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function verifyEmail(Request $request)
+    {
+        $user = User::findOrFail($request->route('id'));
+
+        // Verify hash matches
+        if (!hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid verification link'
+            ], 400);
+        }
+
+        // Check if already verified
+        if ($user->hasVerifiedEmail()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Email already verified',
+                'data' => [
+                    'verified_at' => $user->email_verified_at
+                ]
+            ]);
+        }
+
+        // Mark email as verified
+        if ($user->markEmailAsVerified()) {
+            // Create audit log
+            \App\Models\AuditLog::create([
+                'user_id' => $user->id,
+                'action' => 'EMAIL_VERIFIED',
+                'description' => 'Email address verified successfully',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Email verified successfully',
+                'data' => [
+                    'verified_at' => $user->email_verified_at
+                ]
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Email verification failed'
+        ], 500);
+    }
+
+    /**
+     * Get current user verification status
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function verificationStatus(Request $request)
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'email' => $user->email,
+                'email_verified' => !is_null($user->email_verified_at),
+                'email_verified_at' => $user->email_verified_at,
+                'auth_provider' => $user->auth_provider,
+                'google_verified' => !is_null($user->google_verified_at),
+            ]
         ]);
     }
 }

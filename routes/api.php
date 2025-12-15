@@ -48,6 +48,10 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/auth/google', [AuthController::class, 'googleLogin']);
 
+// Email Verification Routes (public - accessed via email link)
+Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+    ->name('verification.verify');
+
 // Admin Authentication API (No CSRF required - for Postman/API clients)
 Route::post('/admin/login', [AdminAuthController::class, 'login']);
 
@@ -68,6 +72,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/auth/google/unlink', [AuthController::class, 'unlinkGoogle']);
+    
+    // Email Verification Routes (authenticated)
+    Route::post('/email/verification-notification', [AuthController::class, 'resendVerification']);
+    Route::get('/email/verification-status', [AuthController::class, 'verificationStatus']);
     
     // Admin Auth & Dashboard APIs (Bearer Token required with expiration check)
     Route::prefix('admin')->middleware(['admin', 'token.expiration'])->group(function () {
