@@ -10,7 +10,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\URL;
 
-class VerifyEmailNotification extends Notification // Removed ShouldQueue for immediate sending
+class VerifyEmailNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
