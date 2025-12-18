@@ -5,7 +5,7 @@
         <div class="bg-white rounded-xl shadow-sm border p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">Total Template</p>
+                    <p class="text-sm text-gray-600 mb-1">{{ __('logbook.templates.stats.total') }}</p>
                     <p class="text-3xl font-bold text-gray-800" id="avt-total">0</p>
                 </div>
                 <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
@@ -17,7 +17,7 @@
         <div class="bg-white rounded-xl shadow-sm border p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">Aktif</p>
+                    <p class="text-sm text-gray-600 mb-1">{{ __('logbook.templates.stats.active') }}</p>
                     <p class="text-3xl font-bold text-green-600" id="avt-active">0</p>
                 </div>
                 <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -29,7 +29,7 @@
         <div class="bg-white rounded-xl shadow-sm border p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">Nonaktif</p>
+                    <p class="text-sm text-gray-600 mb-1">{{ __('logbook.templates.stats.inactive') }}</p>
                     <p class="text-3xl font-bold text-red-600" id="avt-inactive">0</p>
                 </div>
                 <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
@@ -41,7 +41,7 @@
         <div class="bg-white rounded-xl shadow-sm border p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">Total Institusi</p>
+                    <p class="text-sm text-gray-600 mb-1">{{ __('logbook.templates.stats.institutions') }}</p>
                     <p class="text-3xl font-bold text-gray-800" id="avt-institutions">0</p>
                 </div>
                 <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -56,19 +56,19 @@
         <div class="flex flex-col md:flex-row gap-4 items-end">
             <div class="flex-1">
                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                    <i class="fas fa-search mr-1"></i> Cari Template
+                    <i class="fas fa-search mr-1"></i> {{ __('logbook.templates.search') }}
                 </label>
-                <input type="text" id="avt-search-input" placeholder="Cari berdasarkan nama template..."
+                <input type="text" id="avt-search-input" placeholder="{{ __('logbook.templates.search_placeholder') }}"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
             </div>
             <div class="flex gap-2">
                 <button onclick="AvailableTemplatesManager.showCreateModal()" 
                     class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition duration-200 flex items-center gap-2">
-                    <i class="fas fa-plus"></i> Buat Template
+                    <i class="fas fa-plus"></i> {{ __('logbook.templates.create_button') }}
                 </button>
                 <button onclick="AvailableTemplatesManager.refresh()" 
                     class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-200 flex items-center gap-2">
-                    <i class="fas fa-sync-alt"></i> Refresh
+                    <i class="fas fa-sync-alt"></i> {{ __('logbook.templates.refresh') }}
                 </button>
             </div>
         </div>
@@ -81,19 +81,19 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Template
+                            {{ __('logbook.templates.table.name') }}
                         </th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Institusi
+                            {{ __('logbook.templates.table.institution') }}
                         </th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Jumlah Kolom
+                            {{ __('logbook.templates.table.columns') }}
                         </th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Status
+                            {{ __('logbook.templates.table.status') }}
                         </th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Aksi
+                            {{ __('logbook.templates.table.actions') }}
                         </th>
                     </tr>
                 </thead>
@@ -101,7 +101,7 @@
                     <tr>
                         <td colspan="5" class="px-6 py-12 text-center">
                             <i class="fas fa-spinner fa-spin text-4xl text-gray-400 mb-4"></i>
-                            <p class="text-gray-500">Memuat data template...</p>
+                            <p class="text-gray-500">{{ __('logbook.templates.loading') }}</p>
                         </td>
                     </tr>
                 </tbody>
@@ -114,7 +114,7 @@
         <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto transform transition-all">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-xl font-bold text-gray-900" id="avt-modal-title">Buat Template Baru</h3>
+                    <h3 class="text-xl font-bold text-gray-900" id="avt-modal-title">{{ __('logbook.templates.modal_create_title') }}</h3>
                     <button onclick="AvailableTemplatesManager.closeFormModal()" class="text-gray-400 hover:text-gray-600">
                         <i class="fas fa-times text-xl"></i>
                     </button>
@@ -127,30 +127,30 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Nama Template <span class="text-red-500">*</span>
+                                {{ __('logbook.templates.form.name') }} <span class="text-red-500">*</span>
                             </label>
                             <input type="text" id="avt-name" required
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                placeholder="Contoh: Logbook Harian Karyawan">
+                                placeholder="{{ __('logbook.templates.form.name_placeholder') }}">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Institusi <span class="text-red-500">*</span>
+                                {{ __('logbook.templates.form.institution') }} <span class="text-red-500">*</span>
                             </label>
                             <select id="avt-institution" required
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                                <option value="">Pilih Institusi</option>
+                                <option value="">{{ __('logbook.templates.form.select_institution') }}</option>
                             </select>
                         </div>
                     </div>
 
                     <div class="mb-6">
                         <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Deskripsi
+                            {{ __('logbook.templates.form.description') }}
                         </label>
                         <textarea id="avt-description" rows="2"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            placeholder="Deskripsi singkat tentang template ini..."></textarea>
+                            placeholder="{{ __('logbook.templates.form.description_placeholder') }}"></textarea>
                     </div>
 
                     <!-- Is Active Checkbox -->
@@ -158,7 +158,7 @@
                         <label class="flex items-center gap-3 cursor-pointer">
                             <input type="checkbox" id="avt-is-active" checked
                                 class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                            <span class="text-sm font-medium text-gray-700">Aktifkan Template</span>
+                            <span class="text-sm font-medium text-gray-700">{{ __('logbook.templates.form.activate_template') }}</span>
                         </label>
                     </div>
 
@@ -166,11 +166,11 @@
                     <div class="mb-6">
                         <div class="flex items-center justify-between mb-4">
                             <label class="block text-sm font-medium text-gray-700">
-                                Kolom Template <span class="text-red-500">*</span>
+                                {{ __('logbook.templates.form.columns') }} <span class="text-red-500">*</span>
                             </label>
                             <button type="button" onclick="AvailableTemplatesManager.addColumn()"
                                 class="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition duration-200 flex items-center gap-2">
-                                <i class="fas fa-plus"></i> Tambah Kolom
+                                <i class="fas fa-plus"></i> {{ __('logbook.templates.form.add_column') }}
                             </button>
                         </div>
                         
@@ -180,7 +180,7 @@
                         
                         <p class="text-sm text-gray-500 mt-2">
                             <i class="fas fa-info-circle mr-1"></i>
-                            Minimal 1 kolom diperlukan. Anda dapat menambah kolom sebanyak yang diperlukan.
+                            {{ __('logbook.templates.form.columns_info') }}
                         </p>
                     </div>
 
@@ -188,11 +188,11 @@
                     <div class="flex gap-3 pt-4 border-t">
                         <button type="button" onclick="AvailableTemplatesManager.closeFormModal()"
                             class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition duration-200">
-                            Batal
+                            {{ __('logbook.templates.cancel') }}
                         </button>
                         <button type="submit" id="avt-submit-btn"
                             class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition duration-200">
-                            Simpan Template
+                            {{ __('logbook.templates.save') }}
                         </button>
                     </div>
                 </form>
@@ -205,7 +205,7 @@
         <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto transform transition-all">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-xl font-bold text-gray-900">Detail Template</h3>
+                    <h3 class="text-xl font-bold text-gray-900">{{ __('logbook.templates.view_detail') }}</h3>
                     <button onclick="AvailableTemplatesManager.closeViewModal()" class="text-gray-400 hover:text-gray-600">
                         <i class="fas fa-times text-xl"></i>
                     </button>
@@ -218,7 +218,7 @@
                 <div class="flex gap-3 pt-4 border-t mt-6">
                     <button type="button" onclick="AvailableTemplatesManager.closeViewModal()"
                         class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition duration-200">
-                        Tutup
+                        {{ __('logbook.templates.close') }}
                     </button>
                 </div>
             </div>
@@ -233,20 +233,20 @@
                     <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
                 </div>
                 
-                <h3 class="text-xl font-bold text-gray-900 text-center mb-2">Konfirmasi Hapus</h3>
+                <h3 class="text-xl font-bold text-gray-900 text-center mb-2">{{ __('logbook.templates.delete_confirm_title') }}</h3>
                 <p class="text-gray-600 text-center mb-6">
-                    Apakah Anda yakin ingin menghapus template <strong id="avt-delete-name"></strong>?
-                    <br><span class="text-sm text-red-600 mt-2 block">Tindakan ini tidak dapat dibatalkan!</span>
+                    {{ __('logbook.templates.delete_confirm_message') }} <strong id="avt-delete-name"></strong>?
+                    <br><span class="text-sm text-red-600 mt-2 block">{{ __('logbook.templates.delete_warning') }}</span>
                 </p>
                 
                 <div class="flex gap-3">
                     <button onclick="AvailableTemplatesManager.closeDeleteModal()" 
                         class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition duration-200">
-                        Batal
+                        {{ __('logbook.templates.cancel') }}
                     </button>
                     <button onclick="AvailableTemplatesManager.confirmDelete()" 
                         class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-200">
-                        Hapus
+                        {{ __('logbook.templates.delete') }}
                     </button>
                 </div>
             </div>
@@ -255,6 +255,9 @@
 </div>
 
 <script>
+// Translations for JavaScript
+window.templatesTranslations = {!! json_encode(['statusActive' => __('logbook.templates.status_active'), 'statusInactive' => __('logbook.templates.status_inactive'), 'actionsView' => __('logbook.templates.actions_view'), 'actionsEdit' => __('logbook.templates.actions_edit'), 'actionsDelete' => __('logbook.templates.actions_delete'), 'noData' => __('logbook.templates.no_data'), 'noDataDesc' => __('logbook.templates.no_data_description'), 'modalCreateTitle' => __('logbook.templates.modal_create_title'), 'modalEditTitle' => __('logbook.templates.modal_edit_title'), 'save' => __('logbook.templates.save'), 'update' => __('logbook.templates.update'), 'entries' => __('logbook.templates.entries'), 'columns' => __('logbook.templates.form.columns'), 'columnName' => __('logbook.templates.form.column_name'), 'columnNamePlaceholder' => __('logbook.templates.form.column_name_placeholder'), 'columnType' => __('logbook.templates.form.column_type'), 'selectColumnType' => __('logbook.templates.form.select_column_type'), 'columnRequired' => __('logbook.templates.form.column_required'), 'required' => __('logbook.templates.form.required_label'), 'optional' => __('logbook.templates.form.optional_label'), 'removeColumn' => __('logbook.templates.form.remove_column'), 'viewDetailTemplate' => __('logbook.templates.view_detail_template'), 'viewDetailInstitution' => __('logbook.templates.view_detail_institution'), 'viewDetailStatus' => __('logbook.templates.view_detail_status'), 'viewDetailDescription' => __('logbook.templates.view_detail_description'), 'viewDetailColumns' => __('logbook.templates.view_detail_columns'), 'viewDetailColumnName' => __('logbook.templates.view_detail_column_name'), 'viewDetailColumnType' => __('logbook.templates.view_detail_column_type'), 'viewDetailColumnRequired' => __('logbook.templates.view_detail_column_required')]) !!};
+
 // Available Templates Manager Module
 const AvailableTemplatesManager = {
     allTemplates: [],
@@ -444,7 +447,7 @@ const AvailableTemplatesManager = {
                 </td>
                 <td class="px-6 py-4">
                     <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                        <i class="fas fa-columns mr-1"></i> ${(template.required_columns || []).length} kolom
+                        <i class="fas fa-columns mr-1"></i> ${(template.required_columns || []).length} ${window.templatesTranslations.columns}
                     </span>
                 </td>
                 <td class="px-6 py-4">
@@ -455,24 +458,24 @@ const AvailableTemplatesManager = {
                                 : 'bg-red-100 text-red-800 hover:bg-red-200'
                         }">
                         <i class="fas ${template.is_active ? 'fa-check-circle' : 'fa-times-circle'} mr-1"></i>
-                        ${template.is_active ? 'Aktif' : 'Nonaktif'}
+                        ${template.is_active ? window.templatesTranslations.statusActive : window.templatesTranslations.statusInactive}
                     </button>
                 </td>
                 <td class="px-6 py-4">
                     <div class="flex items-center gap-2">
                         <button onclick="AvailableTemplatesManager.viewTemplate('${template.id}')" 
                             class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition duration-200"
-                            title="Lihat Detail">
+                            title="${window.templatesTranslations.actionsView}">
                             <i class="fas fa-eye"></i>
                         </button>
                         <button onclick="AvailableTemplatesManager.showEditModal('${template.id}')" 
                             class="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition duration-200"
-                            title="Edit Template">
+                            title="${window.templatesTranslations.actionsEdit}">
                             <i class="fas fa-edit"></i>
                         </button>
                         <button onclick="AvailableTemplatesManager.showDeleteModal('${template.id}', '${LogbookManagement.escapeHtml(template.name)}')" 
                             class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition duration-200"
-                            title="Hapus Template">
+                            title="${window.templatesTranslations.actionsDelete}">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>
@@ -487,8 +490,8 @@ const AvailableTemplatesManager = {
             <tr>
                 <td colspan="5" class="px-6 py-12 text-center">
                     <i class="fas fa-layer-group text-6xl text-gray-300 mb-4"></i>
-                    <p class="text-gray-500 text-lg mb-2">Tidak ada template ditemukan</p>
-                    <p class="text-gray-400 text-sm">Klik tombol "Buat Template" untuk membuat template baru</p>
+                    <p class="text-gray-500 text-lg mb-2">${window.templatesTranslations.noData}</p>
+                    <p class="text-gray-400 text-sm">${window.templatesTranslations.noDataDesc}</p>
                 </td>
             </tr>
         `;
@@ -520,28 +523,28 @@ const AvailableTemplatesManager = {
                 <div class="flex items-start gap-4">
                     <div class="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Kolom <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">${window.templatesTranslations.columnName} <span class="text-red-500">*</span></label>
                             <input type="text" class="column-name w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                placeholder="Contoh: tanggal_kegiatan" value="${columnData?.name || ''}" required>
+                                placeholder="${window.templatesTranslations.columnNamePlaceholder}" value="${columnData?.name || ''}" required>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Tipe Data <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">${window.templatesTranslations.columnType} <span class="text-red-500">*</span></label>
                             <select class="column-type w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
-                                <option value="">Pilih Tipe</option>
+                                <option value="">${window.templatesTranslations.selectColumnType}</option>
                                 ${this.dataTypes.map(dt => 
                                     `<option value="${dt.name}" ${columnData?.data_type === dt.name ? 'selected' : ''}>${dt.name} - ${dt.description || ''}</option>`
                                 ).join('')}
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">${window.templatesTranslations.viewDetailDescription}</label>
                             <input type="text" class="column-desc w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                placeholder="Deskripsi kolom (opsional)" value="${columnData?.description || ''}">
+                                placeholder="${window.templatesTranslations.viewDetailDescription}" value="${columnData?.description || ''}">
                         </div>
                     </div>
                     <button type="button" onclick="AvailableTemplatesManager.removeColumn(${this.columnCounter})"
                         class="mt-6 p-2 text-red-600 hover:bg-red-50 rounded-lg transition duration-200"
-                        title="Hapus Kolom">
+                        title="${window.templatesTranslations.removeColumn}">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -582,8 +585,8 @@ const AvailableTemplatesManager = {
     showCreateModal() {
         this.editingId = null;
         this.columnCounter = 0;
-        document.getElementById('avt-modal-title').textContent = 'Buat Template Baru';
-        document.getElementById('avt-submit-btn').textContent = 'Simpan Template';
+        document.getElementById('avt-modal-title').textContent = window.templatesTranslations.modalCreateTitle;
+        document.getElementById('avt-submit-btn').textContent = window.templatesTranslations.save;
         document.getElementById('avt-form').reset();
         document.getElementById('avt-id').value = '';
         document.getElementById('avt-is-active').checked = true;
@@ -607,8 +610,8 @@ const AvailableTemplatesManager = {
             return;
         }
 
-        document.getElementById('avt-modal-title').textContent = 'Edit Template';
-        document.getElementById('avt-submit-btn').textContent = 'Update Template';
+        document.getElementById('avt-modal-title').textContent = window.templatesTranslations.modalEditTitle;
+        document.getElementById('avt-submit-btn').textContent = window.templatesTranslations.update;
         document.getElementById('avt-id').value = template.id;
         document.getElementById('avt-name').value = template.name;
         document.getElementById('avt-description').value = template.description || '';
@@ -719,45 +722,45 @@ const AvailableTemplatesManager = {
             <div class="space-y-6">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <p class="text-sm text-gray-500">Nama Template</p>
+                        <p class="text-sm text-gray-500">${window.templatesTranslations.viewDetailTemplate}</p>
                         <p class="text-lg font-semibold text-gray-900">${LogbookManagement.escapeHtml(template.name)}</p>
                     </div>
                     <div>
-                        <p class="text-sm text-gray-500">Institusi</p>
+                        <p class="text-sm text-gray-500">${window.templatesTranslations.viewDetailInstitution}</p>
                         <p class="text-lg font-semibold text-gray-900">${LogbookManagement.escapeHtml(template.institution?.name || 'N/A')}</p>
                     </div>
                     <div>
-                        <p class="text-sm text-gray-500">Status</p>
+                        <p class="text-sm text-gray-500">${window.templatesTranslations.viewDetailStatus}</p>
                         <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                             template.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }">
                             <i class="fas ${template.is_active ? 'fa-check-circle' : 'fa-times-circle'} mr-1"></i>
-                            ${template.is_active ? 'Aktif' : 'Nonaktif'}
+                            ${template.is_active ? window.templatesTranslations.statusActive : window.templatesTranslations.statusInactive}
                         </span>
                     </div>
                     <div>
-                        <p class="text-sm text-gray-500">Jumlah Kolom</p>
-                        <p class="text-lg font-semibold text-gray-900">${columns.length} kolom</p>
+                        <p class="text-sm text-gray-500">${window.templatesTranslations.viewDetailColumns}</p>
+                        <p class="text-lg font-semibold text-gray-900">${columns.length} ${window.templatesTranslations.columns}</p>
                     </div>
                 </div>
                 
                 ${template.description ? `
                     <div>
-                        <p class="text-sm text-gray-500">Deskripsi</p>
+                        <p class="text-sm text-gray-500">${window.templatesTranslations.viewDetailDescription}</p>
                         <p class="text-gray-700">${LogbookManagement.escapeHtml(template.description)}</p>
                     </div>
                 ` : ''}
                 
                 <div>
-                    <p class="text-sm text-gray-500 mb-3">Struktur Kolom</p>
+                    <p class="text-sm text-gray-500 mb-3">${window.templatesTranslations.viewDetailColumns}</p>
                     <div class="border rounded-lg overflow-hidden">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">#</th>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Nama Kolom</th>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Tipe Data</th>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Deskripsi</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">${window.templatesTranslations.viewDetailColumnName}</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">${window.templatesTranslations.viewDetailColumnType}</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">${window.templatesTranslations.viewDetailDescription}</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200">

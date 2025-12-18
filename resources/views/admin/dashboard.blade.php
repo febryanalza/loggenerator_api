@@ -1,14 +1,14 @@
 @extends('admin.layout')
 
-@section('title', 'Dashboard')
-@section('page-title', 'Dashboard')
-@section('page-description', 'Statistik dan monitoring sistem')
+@section('title', __('admin.dashboard.title'))
+@section('page-title', __('admin.dashboard.title'))
+@section('page-description', __('admin.dashboard.description'))
 
 @section('content')
 <!-- Loading Indicator -->
 <div id="dashboardLoading" class="text-center py-12">
     <i class="fas fa-spinner fa-spin text-4xl text-indigo-600"></i>
-    <p class="text-gray-600 mt-4">Loading dashboard data...</p>
+    <p class="text-gray-600 mt-4">{{ __('admin.dashboard.loading') }}</p>
 </div>
 
 <!-- Dashboard Content -->
@@ -18,7 +18,7 @@
         <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500 stats-card">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-600 uppercase tracking-wide">Total Users</p>
+                    <p class="text-sm font-medium text-gray-600 uppercase tracking-wide">{{ __('admin.dashboard.stats.total_users') }}</p>
                     <p class="text-3xl font-bold text-gray-900 mt-2" id="totalUsers">0</p>
                 </div>
                 <div class="bg-blue-100 p-3 rounded-full">
@@ -30,7 +30,7 @@
         <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500 stats-card">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-600 uppercase tracking-wide">Logbook Templates</p>
+                    <p class="text-sm font-medium text-gray-600 uppercase tracking-wide">{{ __('admin.dashboard.stats.logbook_templates') }}</p>
                     <p class="text-3xl font-bold text-gray-900 mt-2" id="totalTemplates">0</p>
                 </div>
                 <div class="bg-green-100 p-3 rounded-full">
@@ -42,7 +42,7 @@
         <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-yellow-500 stats-card">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-600 uppercase tracking-wide">Logbook Entries</p>
+                    <p class="text-sm font-medium text-gray-600 uppercase tracking-wide">{{ __('admin.dashboard.stats.logbook_entries') }}</p>
                     <p class="text-3xl font-bold text-gray-900 mt-2" id="totalEntries">0</p>
                 </div>
                 <div class="bg-yellow-100 p-3 rounded-full">
@@ -54,7 +54,7 @@
         <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-500 stats-card">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-600 uppercase tracking-wide">Audit Logs</p>
+                    <p class="text-sm font-medium text-gray-600 uppercase tracking-wide">{{ __('admin.dashboard.stats.audit_logs') }}</p>
                     <p class="text-3xl font-bold text-gray-900 mt-2" id="totalAuditLogs">0</p>
                 </div>
                 <div class="bg-purple-100 p-3 rounded-full">
@@ -70,7 +70,7 @@
         <div class="bg-white rounded-xl shadow-md p-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-4">
                 <i class="fas fa-chart-line text-indigo-600 mr-2"></i>
-                User Registrations (Last 30 Days)
+                {{ __('admin.dashboard.charts.user_registrations') }}
             </h3>
             <div class="chart-container">
                 <canvas id="userChart"></canvas>
@@ -81,7 +81,7 @@
         <div class="bg-white rounded-xl shadow-md p-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-4">
                 <i class="fas fa-chart-bar text-green-600 mr-2"></i>
-                Logbook Activity (Last 30 Days)
+                {{ __('admin.dashboard.charts.logbook_activity') }}
             </h3>
             <div class="chart-container">
                 <canvas id="logbookChart"></canvas>
@@ -94,13 +94,13 @@
         <div class="p-6 border-b border-gray-200">
             <h3 class="text-lg font-semibold text-gray-800">
                 <i class="fas fa-clock text-orange-600 mr-2"></i>
-                Recent Activity
+                {{ __('admin.dashboard.recent_activity.title') }}
             </h3>
         </div>
         <div class="divide-y divide-gray-200" id="recentActivity">
             <div class="p-4 text-center text-gray-500">
                 <i class="fas fa-spinner fa-spin mr-2"></i>
-                Loading recent activity...
+                {{ __('admin.dashboard.recent_activity.loading') }}
             </div>
         </div>
     </div>
@@ -110,6 +110,8 @@
 @push('scripts')
 <script src="{{ asset('js/admin-dashboard.js') }}"></script>
 <script>
+const translations = {!! str_replace(["'"], ["\'"], json_encode(['loadFailed' => __('admin.dashboard.load_failed'), 'refreshSuccess' => __('admin.dashboard.refresh_success')])) !!};
+
 let dashboard;
 
 function checkAuthAndLoadDashboard() {
@@ -131,7 +133,7 @@ function checkAuthAndLoadDashboard() {
             document.getElementById('dashboardContent').classList.remove('hidden');
         }).catch(error => {
             console.error('Dashboard initialization failed:', error);
-            alert('Failed to load dashboard data. Please try again.');
+            alert(translations.loadFailed);
             window.location.href = '/login';
         });
         
@@ -155,7 +157,7 @@ if (refreshBtn) {
                 // Show success toast
                 const toast = document.createElement('div');
                 toast.className = 'fixed top-20 right-6 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-                toast.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Dashboard refreshed!';
+                toast.innerHTML = '<i class="fas fa-check-circle mr-2"></i>' + translations.refreshSuccess;
                 document.body.appendChild(toast);
                 
                 setTimeout(() => toast.remove(), 3000);

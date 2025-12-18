@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Login - {{ config('app.name') }}</title>
+    <title>{{ __('auth.login.title') }} - {{ config('app.name') }}</title>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -77,8 +77,8 @@
             <div class="mx-auto w-20 h-20 bg-white rounded-full flex items-center justify-center mb-4 shadow-lg">
                 <i class="fas fa-shield-alt text-3xl text-indigo-600"></i>
             </div>
-            <h1 class="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
-            <p class="text-indigo-200">Log Generator API Management</p>
+            <h1 class="text-3xl font-bold text-white mb-2">{{ __('auth.login.heading') }}</h1>
+            <p class="text-indigo-200">{{ __('auth.login.subtitle') }}</p>
         </div>
 
         <!-- Login Form -->
@@ -90,7 +90,7 @@
                 <!-- Email Field -->
                 <div>
                     <label for="email" class="block text-sm font-medium text-white mb-2">
-                        <i class="fas fa-envelope mr-2"></i>Email Address
+                        <i class="fas fa-envelope mr-2"></i>{{ __('auth.login.email.label') }}
                     </label>
                     <input 
                         type="email" 
@@ -99,7 +99,7 @@
                         value="superadmin@loggenerator.com"
                         required
                         class="w-full px-4 py-3 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-indigo-200 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent transition duration-200"
-                        placeholder="admin@loggenerator.com"
+                        placeholder="{{ __('auth.login.email.placeholder') }}"
                         autocomplete="email"
                     >
                 </div>
@@ -107,7 +107,7 @@
                 <!-- Password Field -->
                 <div>
                     <label for="password" class="block text-sm font-medium text-white mb-2">
-                        <i class="fas fa-lock mr-2"></i>Password
+                        <i class="fas fa-lock mr-2"></i>{{ __('auth.login.password.label') }}
                     </label>
                     <div class="relative">
                         <input 
@@ -117,7 +117,7 @@
                             value="password"
                             required
                             class="w-full px-4 py-3 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-indigo-200 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent transition duration-200 pr-12"
-                            placeholder="Enter your password"
+                            placeholder="{{ __('auth.login.password.placeholder') }}"
                             autocomplete="current-password"
                         >
                         <button 
@@ -140,7 +140,7 @@
                             class="h-4 w-4 text-indigo-600 focus:ring-white border-white border-opacity-30 rounded bg-white bg-opacity-20"
                         >
                         <label for="remember" class="ml-2 block text-sm text-indigo-200">
-                            Remember me
+                            {{ __('auth.login.remember') }}
                         </label>
                     </div>
                 </div>
@@ -152,10 +152,10 @@
                     class="w-full bg-white text-indigo-600 py-3 px-4 rounded-lg font-semibold hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-transparent transition duration-200 transform hover:scale-105"
                 >
                     <span id="loginButtonText">
-                        <i class="fas fa-sign-in-alt mr-2"></i>Sign In to Dashboard
+                        <i class="fas fa-sign-in-alt mr-2"></i>{{ __('auth.login.button') }}
                     </span>
                     <span id="loginButtonLoading" class="hidden">
-                        <i class="fas fa-spinner fa-spin mr-2"></i>Signing In...
+                        <i class="fas fa-spinner fa-spin mr-2"></i>{{ __('auth.login.button_loading') }}
                     </span>
                 </button>
             </form>
@@ -167,7 +167,7 @@
                         <div class="w-full border-t border-white border-opacity-30"></div>
                     </div>
                     <div class="relative flex justify-center text-sm">
-                        <span class="px-2 bg-transparent text-indigo-200">Authorized Personnel Only</span>
+                        <span class="px-2 bg-transparent text-indigo-200">{{ __('auth.login.authorized_only') }}</span>
                     </div>
                 </div>
             </div>
@@ -176,13 +176,13 @@
             <div class="mt-6 text-center text-xs text-indigo-200">
                 <p class="mb-2">
                     <i class="fas fa-info-circle mr-1"></i>
-                    Access restricted to administrators only
+                    {{ __('auth.login.access_restricted') }}
                 </p>
                 <div class="flex justify-center space-x-2 text-xs">
-                    <span class="px-2 py-1 bg-white bg-opacity-10 rounded-full">Admin</span>
-                    <span class="px-2 py-1 bg-white bg-opacity-10 rounded-full">Super Admin</span>
-                    <span class="px-2 py-1 bg-white bg-opacity-10 rounded-full">Manager</span>
-                    <span class="px-2 py-1 bg-white bg-opacity-10 rounded-full">Institution Admin</span>
+                    <span class="px-2 py-1 bg-white bg-opacity-10 rounded-full">{{ __('auth.login.roles.admin') }}</span>
+                    <span class="px-2 py-1 bg-white bg-opacity-10 rounded-full">{{ __('auth.login.roles.super_admin') }}</span>
+                    <span class="px-2 py-1 bg-white bg-opacity-10 rounded-full">{{ __('auth.login.roles.manager') }}</span>
+                    <span class="px-2 py-1 bg-white bg-opacity-10 rounded-full">{{ __('auth.login.roles.institution_admin') }}</span>
                 </div>
             </div>
         </div>
@@ -190,13 +190,15 @@
         <!-- Back to Home -->
         <div class="text-center mt-6">
             <a href="{{ route('home') }}" class="text-indigo-200 hover:text-white transition duration-200 text-sm">
-                <i class="fas fa-arrow-left mr-2"></i>Back to Homepage
+                <i class="fas fa-arrow-left mr-2"></i>{{ __('auth.login.back_home') }}
             </a>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+    const loginTranslations = {!! str_replace(["'"], ["\'"], json_encode(['fillAllFields' => __('auth.login.alerts.fill_all_fields'), 'invalidCredentials' => __('auth.login.alerts.invalid_credentials'), 'accessDenied' => __('auth.login.alerts.access_denied'), 'loginSuccessful' => __('auth.login.alerts.login_successful'), 'errorOccurred' => __('auth.login.alerts.error_occurred')])) !!};
+
+    document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('adminLoginForm');
             const emailInput = document.getElementById('email');
             const passwordInput = document.getElementById('password');
@@ -230,7 +232,7 @@
                 const remember = document.getElementById('remember').checked;
                 
                 if (!email || !password) {
-                    showAlert('Please fill in all fields', 'error');
+                    showAlert(loginTranslations.fillAllFields, 'error');
                     return;
                 }
 
@@ -262,13 +264,13 @@
                     });
 
                     if (response.status === 401) {
-                        showAlert(data.message || 'Invalid credentials', 'error');
+                        showAlert(data.message || loginTranslations.invalidCredentials, 'error');
                         setLoadingState(false);
                         return;
                     }
 
                     if (response.status === 403) {
-                        showAlert(data.message || 'Access denied. Admin privileges required.', 'error');
+                        showAlert(data.message || loginTranslations.accessDenied, 'error');
                         setLoadingState(false);
                         return;
                     }
@@ -286,7 +288,7 @@
                         const userRoles = data.data.user.roles || [];
                         const roleNames = userRoles.map(r => r.name || r);
                         
-                        showAlert('Login successful! Redirecting...', 'success');
+                        showAlert(loginTranslations.loginSuccessful, 'success');
                         
                         setTimeout(() => {
                             // Redirect based on role
@@ -302,12 +304,12 @@
                             }
                         }, 1000);
                     } else {
-                        showAlert(data.message || 'Login failed. Please try again.', 'error');
+                        showAlert(data.message || loginTranslations.errorOccurred, 'error');
                         setLoadingState(false);
                     }
                 } catch (error) {
                     console.error('Login error:', error);
-                    showAlert('An error occurred. Please try again.', 'error');
+                    showAlert(loginTranslations.errorOccurred, 'error');
                     setLoadingState(false);
                 }
             });

@@ -135,7 +135,7 @@
                     <i class="fas fa-chart-line text-white text-sm"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold text-gray-800">Admin Panel</h1>
+                    <h1 class="text-lg font-bold text-gray-800">{{ __('admin.sidebar.title') }}</h1>
                     <p class="text-xs text-gray-500">{{ config('app.name') }}</p>
                 </div>
             </div>
@@ -148,37 +148,37 @@
         <nav class="mt-6">
             <a href="{{ route('admin.dashboard') }}" class="sidebar-item flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                 <i class="fas fa-tachometer-alt w-5 h-5 mr-3"></i>
-                <span class="font-medium">Dashboard</span>
+                <span class="font-medium">{{ __('admin.sidebar.dashboard') }}</span>
             </a>
             
             <a href="{{ route('admin.user-management') }}" class="sidebar-item flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 {{ request()->routeIs('admin.user-management') ? 'active' : '' }}">
                 <i class="fas fa-users w-5 h-5 mr-3"></i>
-                <span class="font-medium">Manajemen Pengguna</span>
-                <span class="ml-auto bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">Dev</span>
+                <span class="font-medium">{{ __('admin.sidebar.user_management') }}</span>
+                <span class="ml-auto bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">{{ __('admin.sidebar.badges.dev') }}</span>
             </a>
             
             <a href="{{ route('admin.logbook-management') }}" class="sidebar-item flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 {{ request()->routeIs('admin.logbook-management') ? 'active' : '' }}">
                 <i class="fas fa-book w-5 h-5 mr-3"></i>
-                <span class="font-medium">Manajemen Logbook</span>
-                <span class="ml-auto bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">Dev</span>
+                <span class="font-medium">{{ __('admin.sidebar.logbook_management') }}</span>
+                <span class="ml-auto bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">{{ __('admin.sidebar.badges.dev') }}</span>
             </a>
             
             <a href="{{ route('admin.institution-management') }}" class="sidebar-item flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 {{ request()->routeIs('admin.institution-management') ? 'active' : '' }}">
                 <i class="fas fa-file-alt w-5 h-5 mr-3"></i>
-                <span class="font-medium">Manajemen Institution</span>
-                <span class="ml-auto bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">Dev</span>
+                <span class="font-medium">{{ __('admin.sidebar.institution_management') }}</span>
+                <span class="ml-auto bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">{{ __('admin.sidebar.badges.dev') }}</span>
             </a>
             
             <a href="{{ route('admin.role-permission-manager') }}" class="sidebar-item flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 {{ request()->routeIs('admin.role-permission-manager') ? 'active' : '' }}">
                 <i class="fas fa-user-shield w-5 h-5 mr-3"></i>
-                <span class="font-medium">Role & Permission</span>
-                <span class="ml-auto bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">New</span>
+                <span class="font-medium">{{ __('admin.sidebar.role_permission') }}</span>
+                <span class="ml-auto bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">{{ __('admin.sidebar.badges.new') }}</span>
             </a>
             
             <a href="{{ route('admin.reports-analytics') }}" class="sidebar-item flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 {{ request()->routeIs('admin.reports-analytics') ? 'active' : '' }}">
                 <i class="fas fa-chart-bar w-5 h-5 mr-3"></i>
-                <span class="font-medium">Reports & Analytics</span>
-                <span class="ml-auto bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">New</span>
+                <span class="font-medium">{{ __('admin.sidebar.reports_analytics') }}</span>
+                <span class="ml-auto bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">{{ __('admin.sidebar.badges.new') }}</span>
             </a>
         </nav>
 
@@ -189,14 +189,14 @@
                     <i class="fas fa-user-shield text-white text-sm"></i>
                 </div>
                 <div class="flex-1">
-                    <p class="text-sm font-medium text-gray-800">Administrator</p>
-                    <p class="text-xs text-gray-500">Super Admin</p>
+                    <p class="text-sm font-medium text-gray-800">{{ __('admin.topbar.administrator') }}</p>
+                    <p class="text-xs text-gray-500">{{ __('admin.user.roles.super_admin') }}</p>
                 </div>
             </div>
             <div class="mt-3">
                 <a href="{{ route('home') }}" class="text-sm text-indigo-600 hover:text-indigo-800 flex items-center">
                     <i class="fas fa-arrow-left mr-2"></i>
-                    Kembali ke Website
+                    {{ __('admin.sidebar.back_to_website') }}
                 </a>
             </div>
         </div>
@@ -209,12 +209,12 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h2 class="text-2xl font-bold text-gray-800">@yield('page-title', 'Dashboard')</h2>
-                    <p class="text-sm text-gray-600 mt-1">@yield('page-description', 'Selamat datang di panel administrator')</p>
+                    <p class="text-sm text-gray-600 mt-1">@yield('page-description', __('admin.topbar.welcome'))</p>
                 </div>
                 <div class="flex items-center space-x-4">
                     <!-- Refresh Button -->
                     @if(request()->routeIs('admin.dashboard*'))
-                    <button id="refresh-dashboard" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors" title="Refresh Dashboard">
+                    <button id="refresh-dashboard" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors" title="{{ __('admin.topbar.refresh') }}">
                         <i class="fas fa-sync-alt text-lg"></i>
                     </button>
                     @endif
@@ -227,15 +227,18 @@
                         </button>
                     </div>
                     
+                    <!-- Language Switcher -->
+                    @include('components.language-switcher')
+                    
                     <!-- User Profile & Logout -->
                     <div class="flex items-center space-x-3">
                         <div class="text-sm text-gray-600 text-right" id="currentUserInfo">
-                            <div class="font-medium">Loading...</div>
-                            <div class="text-xs text-gray-400">Administrator</div>
+                            <div class="font-medium">{{ __('admin.topbar.loading') }}</div>
+                            <div class="text-xs text-gray-400">{{ __('admin.topbar.administrator') }}</div>
                         </div>
                         <button onclick="handleLogout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
                             <i class="fas fa-sign-out-alt"></i>
-                            <span>Logout</span>
+                            <span>{{ __('admin.topbar.logout') }}</span>
                         </button>
                     </div>
                     
@@ -258,6 +261,8 @@
     <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden"></div>
 
     <script>
+    const layoutTranslations = {!! str_replace(["'"], ["\'"], json_encode(['administrator' => __('admin.topbar.administrator'), 'logoutConfirm' => __('admin.topbar.logout_confirm')])) !!};
+
         // Load user info from localStorage
         const userData = localStorage.getItem('admin_user');
         if (userData) {
@@ -267,7 +272,7 @@
                 if (userInfoDiv && user.name) {
                     userInfoDiv.innerHTML = `
                         <div class="font-medium">${user.name}</div>
-                        <div class="text-xs text-gray-400">Administrator</div>
+                        <div class="text-xs text-gray-400">${layoutTranslations.administrator}</div>
                     `;
                 }
             } catch (e) {
@@ -277,7 +282,7 @@
 
         // Logout handler using AdminTokenManager
         function handleLogout() {
-            if (confirm('Are you sure you want to logout?')) {
+            if (confirm(layoutTranslations.logoutConfirm)) {
                 AdminTokenManager.logout();
             }
         }

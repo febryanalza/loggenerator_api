@@ -1,15 +1,15 @@
 @extends('admin.layout')
 
-@section('title', 'Detail Logbook')
-@section('page-title', 'Detail Logbook')
-@section('page-description', 'Lihat detail dan semua data yang ada dalam logbook')
+@section('title', __('logbook_detail.page_title'))
+@section('page-title', __('logbook_detail.page_title'))
+@section('page-description', __('logbook_detail.page_description'))
 
 @section('content')
     <!-- Back Button -->
     <div class="mb-6">
         <button onclick="history.back()" class="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition duration-200">
             <i class="fas fa-arrow-left mr-2"></i>
-            Kembali
+            {{ __('logbook_detail.back') }}
         </button>
     </div>
 
@@ -36,22 +36,22 @@
                     <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500">
                         <div class="flex items-center">
                             <i class="fas fa-user mr-2"></i>
-                            <span>Dibuat oleh: <span id="template-creator" class="font-medium"></span></span>
+                            <span>{{ __('logbook_detail.created_by') }}: <span id="template-creator" class="font-medium"></span></span>
                         </div>
                         <div class="flex items-center">
                             <i class="fas fa-building mr-2"></i>
-                            <span>Institusi: <span id="template-institution" class="font-medium"></span></span>
+                            <span>{{ __('logbook_detail.institution') }}: <span id="template-institution" class="font-medium"></span></span>
                         </div>
                         <div class="flex items-center">
                             <i class="fas fa-calendar mr-2"></i>
-                            <span>Tanggal: <span id="template-date" class="font-medium"></span></span>
+                            <span>{{ __('logbook_detail.date') }}: <span id="template-date" class="font-medium"></span></span>
                         </div>
                     </div>
                 </div>
                 <div class="flex items-center space-x-3">
                     <button onclick="refreshData()" class="px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg transition duration-200">
                         <i class="fas fa-sync-alt mr-2"></i>
-                        Refresh
+                        {{ __('logbook_detail.refresh') }}
                     </button>
                 </div>
             </div>
@@ -61,7 +61,7 @@
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-blue-100 text-sm mb-1">Total Entri</p>
+                            <p class="text-blue-100 text-sm mb-1">{{ __('logbook_detail.stats.total_entries') }}</p>
                             <p id="total-entries" class="text-3xl font-bold">0</p>
                         </div>
                         <div class="w-12 h-12 bg-blue-400 bg-opacity-50 rounded-lg flex items-center justify-center">
@@ -73,7 +73,7 @@
                 <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-green-100 text-sm mb-1">Total Penulis</p>
+                            <p class="text-green-100 text-sm mb-1">{{ __('logbook_detail.stats.total_writers') }}</p>
                             <p id="total-writers" class="text-3xl font-bold">0</p>
                         </div>
                         <div class="w-12 h-12 bg-green-400 bg-opacity-50 rounded-lg flex items-center justify-center">
@@ -85,7 +85,7 @@
                 <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-purple-100 text-sm mb-1">Entri Terverifikasi</p>
+                            <p class="text-purple-100 text-sm mb-1">{{ __('logbook_detail.stats.verified_entries') }}</p>
                             <p id="verified-entries" class="text-3xl font-bold">0</p>
                         </div>
                         <div class="w-12 h-12 bg-purple-400 bg-opacity-50 rounded-lg flex items-center justify-center">
@@ -97,7 +97,7 @@
                 <div class="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg p-6 text-white">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-orange-100 text-sm mb-1">Entri Terbaru</p>
+                            <p class="text-orange-100 text-sm mb-1">{{ __('logbook_detail.stats.latest_entry') }}</p>
                             <p id="latest-entry" class="text-sm font-medium">-</p>
                         </div>
                         <div class="w-12 h-12 bg-orange-400 bg-opacity-50 rounded-lg flex items-center justify-center">
@@ -115,31 +115,31 @@
             <div class="flex flex-col sm:flex-row gap-4">
                 <!-- Writer Filter -->
                 <div class="min-w-0 flex-1 sm:min-w-[200px]">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Filter Penulis</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('logbook_detail.filter_writer') }}</label>
                     <select id="writer-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="">Semua Penulis</option>
+                        <option value="">{{ __('logbook_detail.all_writers') }}</option>
                     </select>
                 </div>
 
                 <!-- Date Range Filter -->
                 <div class="flex gap-2">
                     <div class="min-w-0 flex-1">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Dari Tanggal</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('logbook_detail.from_date') }}</label>
                         <input type="date" id="start-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                     <div class="min-w-0 flex-1">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Sampai Tanggal</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('logbook_detail.to_date') }}</label>
                         <input type="date" id="end-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                 </div>
 
                 <!-- Verification Filter -->
                 <div class="min-w-0 flex-1 sm:min-w-[200px]">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Status Verifikasi</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('logbook_detail.filter_status') }}</label>
                     <select id="verification-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="">Semua Status</option>
-                        <option value="verified">Terverifikasi</option>
-                        <option value="unverified">Belum Verifikasi</option>
+                        <option value="">{{ __('logbook_detail.all_status') }}</option>
+                        <option value="verified">{{ __('logbook_detail.verified') }}</option>
+                        <option value="unverified">{{ __('logbook_detail.unverified') }}</option>
                     </select>
                 </div>
             </div>
@@ -147,11 +147,11 @@
             <div class="flex gap-2">
                 <button onclick="applyFilters()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition duration-200">
                     <i class="fas fa-filter mr-2"></i>
-                    Terapkan Filter
+                    {{ __('logbook_detail.apply_filter') }}
                 </button>
                 <button onclick="clearFilters()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition duration-200">
                     <i class="fas fa-times mr-2"></i>
-                    Bersihkan
+                    {{ __('logbook_detail.reset_filter') }}
                 </button>
             </div>
         </div>
@@ -256,6 +256,33 @@
 
 @push('scripts')
 <script>
+// Translations for JavaScript
+window.logbookDetailTranslations = {!! json_encode([
+    'statusVerified' => __('logbook_detail.status_verified'),
+    'statusUnverified' => __('logbook_detail.status_unverified'),
+    'actionsView' => __('logbook_detail.actions_view'),
+    'actionsEdit' => __('logbook_detail.actions_edit'),
+    'actionsDelete' => __('logbook_detail.actions_delete'),
+    'actionsVerify' => __('logbook_detail.actions_verify'),
+    'actionsUnverify' => __('logbook_detail.actions_unverify'),
+    'noData' => __('logbook_detail.no_data'),
+    'noDataDesc' => __('logbook_detail.no_data_desc'),
+    'loading' => __('logbook_detail.loading'),
+    'showing' => __('logbook_detail.showing'),
+    'to' => __('logbook_detail.to'),
+    'of' => __('logbook_detail.of'),
+    'entries' => __('logbook_detail.entries'),
+    'successCreate' => __('logbook_detail.success_create'),
+    'successUpdate' => __('logbook_detail.success_update'),
+    'successDelete' => __('logbook_detail.success_delete'),
+    'successVerify' => __('logbook_detail.success_verify'),
+    'successUnverify' => __('logbook_detail.success_unverify'),
+    'errorLoad' => __('logbook_detail.error_load'),
+    'errorSave' => __('logbook_detail.error_save'),
+    'errorDelete' => __('logbook_detail.error_delete'),
+    'errorNotFound' => __('logbook_detail.error_not_found'),
+]) !!};
+
 let currentTemplateId = null;
 let currentEntries = [];
 let currentWriters = [];

@@ -1,8 +1,8 @@
 @extends('admin.layout')
 
-@section('title', 'Manajemen Logbook')
-@section('page-title', 'Manajemen Logbook')
-@section('page-description', 'Kelola template logbook, tipe data, dan konfigurasi lainnya')
+@section('title', __('logbook.page_title'))
+@section('page-title', __('logbook.page_title'))
+@section('page-description', __('logbook.page_description'))
 
 @section('content')
     <!-- Tab Navigation -->
@@ -12,17 +12,17 @@
                 <button onclick="LogbookManagement.switchTab('templates')" id="tab-btn-templates"
                     class="tab-button flex-1 py-4 px-6 text-center border-b-2 font-medium text-sm transition duration-200 border-blue-500 text-blue-600">
                     <i class="fas fa-book mr-2"></i>
-                    Daftar Logbook
+                    {{ __('logbook.tabs.logbook_list') }}
                 </button>
                 <button onclick="LogbookManagement.switchTab('datatypes')" id="tab-btn-datatypes"
                     class="tab-button flex-1 py-4 px-6 text-center border-b-2 font-medium text-sm transition duration-200 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
                     <i class="fas fa-database mr-2"></i>
-                    Tipe Data
+                    {{ __('logbook.tabs.data_types') }}
                 </button>
                 <button onclick="LogbookManagement.switchTab('availabletemplates')" id="tab-btn-availabletemplates"
                     class="tab-button flex-1 py-4 px-6 text-center border-b-2 font-medium text-sm transition duration-200 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
                     <i class="fas fa-layer-group mr-2"></i>
-                    Available Template
+                    {{ __('logbook.tabs.available_templates') }}
                 </button>
             </nav>
         </div>
@@ -38,6 +38,14 @@
 
 @push('scripts')
 <script>
+// Translations for JavaScript
+window.logbookManagementTranslations = {!! json_encode([
+    'noAuth' => __('logbook.messages.no_auth'),
+    'loading' => __('logbook.messages.loading'),
+    'success' => __('logbook.messages.success'),
+    'error' => __('logbook.messages.error'),
+]) !!};
+
 // Global Logbook Management Module
 const LogbookManagement = {
     currentTab: 'templates',
@@ -53,7 +61,7 @@ const LogbookManagement = {
         const user = localStorage.getItem('admin_user');
         
         if (!token || !user) {
-            console.error('No authentication found');
+            console.error(window.logbookManagementTranslations.noAuth);
             window.location.href = '/login';
             return;
         }

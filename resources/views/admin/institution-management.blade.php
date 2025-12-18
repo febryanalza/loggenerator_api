@@ -1,14 +1,14 @@
 @extends('admin.layout')
 
-@section('title', 'Institution Management')
-@section('page-title', 'Manajemen Institution')
-@section('page-description', 'Kelola data institution dan lihat template yang terafiliasi')
+@section('title', __('institution.page_title'))
+@section('page-title', __('institution.page_title'))
+@section('page-description', __('institution.page_description'))
 
 @section('content')
 <!-- Loading Indicator -->
 <div id="pageLoading" class="text-center py-12">
     <i class="fas fa-spinner fa-spin text-4xl text-indigo-600"></i>
-    <p class="text-gray-600 mt-4">Loading institution data...</p>
+    <p class="text-gray-600 mt-4">{{ __('institution.loading') }}</p>
 </div>
 
 <!-- Main Content -->
@@ -21,7 +21,7 @@
                 <div class="relative">
                     <input type="text" 
                            id="searchInput" 
-                           placeholder="Search institutions by name..."
+                           placeholder="{{ __('institution.search_placeholder') }}"
                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
                     <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
                 </div>
@@ -30,16 +30,16 @@
             <!-- Refresh Button -->
             <button onclick="refreshInstitutionData()" 
                     class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
-                    title="Refresh data from server">
+                    title="{{ __('institution.refresh_title') }}">
                 <i class="fas fa-sync-alt"></i>
-                <span>Refresh</span>
+                <span>{{ __('institution.refresh') }}</span>
             </button>
             
             <!-- Add Institution Button -->
             <button onclick="openCreateModal()" 
                     class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors">
                 <i class="fas fa-plus"></i>
-                <span>Add Institution</span>
+                <span>{{ __('institution.add_button') }}</span>
             </button>
         </div>
     </div>
@@ -49,7 +49,7 @@
         <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-indigo-500">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600">Total Institutions</p>
+                    <p class="text-sm text-gray-600">{{ __('institution.stats.total_institutions') }}</p>
                     <p class="text-2xl font-bold text-gray-800" id="totalInstitutions">0</p>
                 </div>
                 <i class="fas fa-building text-indigo-500 text-2xl"></i>
@@ -59,7 +59,7 @@
         <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-green-500">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600">Total Templates</p>
+                    <p class="text-sm text-gray-600">{{ __('institution.stats.total_templates') }}</p>
                     <p class="text-2xl font-bold text-gray-800" id="totalTemplates">0</p>
                 </div>
                 <i class="fas fa-file-alt text-green-500 text-2xl"></i>
@@ -69,7 +69,7 @@
         <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-500">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600">Total Users</p>
+                    <p class="text-sm text-gray-600">{{ __('institution.stats.total_users') }}</p>
                     <p class="text-2xl font-bold text-gray-800" id="totalUsers">0</p>
                 </div>
                 <i class="fas fa-users text-blue-500 text-2xl"></i>
@@ -83,12 +83,12 @@
             <table class="w-full">
                 <thead class="bg-gray-50 border-b border-gray-200">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Institution Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Templates</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Users</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created Date</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('institution.table.name') }}</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('institution.table.description') }}</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('institution.table.templates') }}</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('institution.table.users') }}</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('institution.table.created_date') }}</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('institution.table.actions') }}</th>
                     </tr>
                 </thead>
                 <tbody id="institutionsTableBody" class="bg-white divide-y divide-gray-200">
@@ -101,7 +101,7 @@
         <div class="bg-gray-50 px-6 py-3 border-t border-gray-200">
             <div class="flex items-center justify-between">
                 <div class="text-sm text-gray-700">
-                    Showing <span id="showingFrom">0</span> to <span id="showingTo">0</span> of <span id="totalCount">0</span> institutions
+                    {{ __('institution.showing') }} <span id="showingFrom">0</span> {{ __('institution.to') }} <span id="showingTo">0</span> {{ __('institution.of') }} <span id="totalCount">0</span> {{ __('institution.institutions') }}
                 </div>
                 <div class="flex gap-2" id="paginationButtons">
                     <!-- Pagination buttons will be inserted here -->
@@ -116,7 +116,7 @@
     <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div class="p-6 border-b border-gray-200">
             <div class="flex items-center justify-between">
-                <h3 class="text-xl font-semibold text-gray-800" id="modalTitle">Add New Institution</h3>
+                <h3 class="text-xl font-semibold text-gray-800" id="modalTitle">{{ __('institution.modal_create_title') }}</h3>
                 <button onclick="closeInstitutionModal()" class="text-gray-400 hover:text-gray-600">
                     <i class="fas fa-times text-2xl"></i>
                 </button>
@@ -131,27 +131,27 @@
                 <!-- Name -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Institution Name <span class="text-red-500">*</span>
+                        {{ __('institution.modal_name') }} <span class="text-red-500">*</span>
                     </label>
                     <input type="text" 
                            id="institutionName" 
                            name="name"
                            required
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                           placeholder="Enter institution name">
+                           placeholder="{{ __('institution.modal_name_placeholder') }}">
                 </div>
                 
                 <!-- Description -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Description
+                        {{ __('institution.modal_description') }}
                     </label>
                     <textarea 
                         id="institutionDescription" 
                         name="description"
                         rows="4"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                        placeholder="Enter institution description (optional)"></textarea>
+                        placeholder="{{ __('institution.modal_description_placeholder') }}"></textarea>
                     <p class="text-xs text-gray-500 mt-1">Maximum 1000 characters</p>
                 </div>
             </div>
@@ -166,13 +166,13 @@
                 <button type="button" 
                         onclick="closeInstitutionModal()"
                         class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
-                    Cancel
+                    {{ __('institution.cancel') }}
                 </button>
                 <button type="submit" 
                         id="submitBtn"
                         class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2">
                     <i class="fas fa-save"></i>
-                    <span id="submitBtnText">Create Institution</span>
+                    <span id="submitBtnText">{{ __('institution.save') }}</span>
                 </button>
             </div>
         </form>
@@ -187,10 +187,10 @@
                 <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
             </div>
             
-            <h3 class="text-xl font-bold text-gray-900 text-center mb-2">Konfirmasi Hapus Institution</h3>
+            <h3 class="text-xl font-bold text-gray-900 text-center mb-2">{{ __('institution.delete_title') }}</h3>
             <p class="text-gray-600 text-center mb-6">
-                Apakah Anda yakin ingin menghapus institution <strong id="deleteInstitutionName"></strong>?
-                <br><span class="text-sm text-red-600 mt-2 block">Institution yang masih memiliki user atau template tidak dapat dihapus!</span>
+                {{ __('institution.delete_message') }} <strong id="deleteInstitutionName"></strong>?
+                <br><span class="text-sm text-red-600 mt-2 block">{{ __('institution.delete_warning') }}</span>
             </p>
             
             <input type="hidden" id="deleteInstitutionId">
@@ -203,13 +203,13 @@
                 <button type="button" 
                         onclick="closeDeleteModal()"
                         class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition duration-200">
-                    Batal
+                    {{ __('institution.cancel') }}
                 </button>
                 <button type="button" 
                         onclick="executeDeleteInstitution()"
                         id="deleteBtn"
                         class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-200">
-                    <span id="deleteBtnText">Hapus</span>
+                    <span id="deleteBtnText">{{ __('institution.delete_button') }}</span>
                 </button>
             </div>
         </div>
@@ -255,6 +255,33 @@
 
 @push('scripts')
 <script>
+// Translations for JavaScript
+window.institutionTranslations = {!! json_encode([
+    'actionsView' => __('institution.actions_view'),
+    'actionsEdit' => __('institution.actions_edit'),
+    'actionsDelete' => __('institution.actions_delete'),
+    'noData' => __('institution.no_data'),
+    'noDataDesc' => __('institution.no_data_desc'),
+    'modalCreateTitle' => __('institution.modal_create_title'),
+    'modalEditTitle' => __('institution.modal_edit_title'),
+    'save' => __('institution.save'),
+    'update' => __('institution.update'),
+    'successCreate' => __('institution.success_create'),
+    'successUpdate' => __('institution.success_update'),
+    'successDelete' => __('institution.success_delete'),
+    'errorLoad' => __('institution.error_load'),
+    'errorSave' => __('institution.error_save'),
+    'errorDelete' => __('institution.error_delete'),
+    'errorNotFound' => __('institution.error_not_found'),
+    'detailTitle' => __('institution.detail_title'),
+    'detailName' => __('institution.detail_name'),
+    'detailDescription' => __('institution.detail_description'),
+    'detailCreatedAt' => __('institution.detail_created_at'),
+    'detailTemplates' => __('institution.detail_templates'),
+    'detailUsers' => __('institution.detail_users'),
+    'close' => __('institution.close'),
+]) !!};
+
 let allInstitutions = [];
 let filteredInstitutions = [];
 let currentPage = 1;
