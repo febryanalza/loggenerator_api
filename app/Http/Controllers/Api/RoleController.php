@@ -736,24 +736,34 @@ class RoleController extends Controller
     public function getStatistics()
     {
         try {
-            $roles = Role::withCount('users')->get();
+            $roles = Role::all();
             $permissions = Permission::count();
+
+            // System role names
+            $systemRoleNames = ['Super Admin', 'Admin', 'Manager', 'Institution Admin', 'User'];
+
+            // Count users for each role
+            $rolesWithUserCount = [];
+            foreach ($roles as $role) {
+                $usersCount = DB::table('model_has_roles')
+                    ->where('role_id', $role->id)
+                    ->count();
+                    
+                $rolesWithUserCount[] = [
+                    'name' => $role->name,
+                    'users_count' => $usersCount
+                ];
+            }
 
             $stats = [
                 'total_roles' => $roles->count(),
-                'system_roles' => $roles->filter(function ($r) {
-                    return in_array($r->name, ['Super Admin', 'Admin', 'Manager', 'Institution Admin', 'User']);
-                })->count(),
-                'custom_roles' => $roles->filter(function ($r) {
-                    return !in_array($r->name, ['Super Admin', 'Admin', 'Manager', 'Institution Admin', 'User']);
-                })->count(),
+                'system_roles' => $roles->whereIn('name', $systemRoleNames)->count(),
+                'custom_roles' => $roles->whereNotIn('name', $systemRoleNames)->count(),
                 'total_permissions' => $permissions,
-                'roles_by_users' => $roles->map(function ($r) {
-                    return [
-                        'name' => $r->name,
-                        'users_count' => $r->users_count
-                    ];
-                })->sortByDesc('users_count')->values()
+                'roles_by_users' => collect($rolesWithUserCount)
+                    ->sortByDesc('users_count')
+                    ->values()
+                    ->toArray()
             ];
 
             return response()->json([
@@ -761,10 +771,15 @@ class RoleController extends Controller
                 'data' => $stats
             ]);
         } catch (\Exception $e) {
+            Log::error('Failed to get role statistics', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get statistics',
-                'error' => $e->getMessage()
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
             ], 500);
         }
     }

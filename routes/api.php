@@ -339,7 +339,8 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // IMPORTANT: Specific routes MUST come before dynamic {id} routes
         // Role & Permission Manager API routes (specific paths)
-        Route::get('/roles/stats', [RoleController::class, 'getStats']);
+        Route::get('/roles/permissions', [RoleController::class, 'getAllPermissions']);
+        Route::get('/roles/stats', [RoleController::class, 'getStatistics']);
         Route::get('/roles/matrix', [RoleController::class, 'getPermissionMatrix']);
         Route::get('/roles/history', [RoleController::class, 'getRoleAssignmentHistory']);
         
@@ -349,12 +350,12 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // Protected with rate limiting for sensitive operations
         Route::middleware('throttle.sensitive:20,1')->group(function () {
+            Route::post('/roles', [RoleController::class, 'store']);
+            Route::put('/roles/{id}', [RoleController::class, 'update']);
+            Route::delete('/roles/{id}', [RoleController::class, 'destroy']);
+            Route::post('/roles/sync-permissions', [RoleController::class, 'syncPermissions']);
             Route::post('/roles/assign-permissions', [RoleController::class, 'assignPermissions']);
             Route::post('/roles/revoke-permissions', [RoleController::class, 'revokePermissions']);
-            Route::post('/roles/matrix/update', [RoleController::class, 'updateRolePermissions']);
-            Route::post('/roles/custom', [RoleController::class, 'createCustomRole']);
-            Route::put('/roles/custom/{id}', [RoleController::class, 'updateCustomRole']);
-            Route::delete('/roles/custom/{id}', [RoleController::class, 'deleteCustomRole']);
         });
     });
     
