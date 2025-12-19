@@ -175,9 +175,26 @@ class AdminAuthController extends Controller
     private function isAdminUser(User $user): bool
     {
         // Check if user has any admin-level permission
-        return $user->can('users.manage') 
-            || $user->can('system.admin')
-            || $user->can('institution.manage-members');
+        // Super Admin & Admin permissions
+        if ($user->can('system.admin') || $user->can('users.manage')) {
+            return true;
+        }
+        
+        // Institution Admin permissions
+        if ($user->can('institution.manage-members') 
+            || $user->can('institution.view-members')
+            || $user->can('institution.update-settings')) {
+            return true;
+        }
+        
+        // Manager permissions
+        if ($user->can('logbooks.export.manage') 
+            || $user->can('templates.manage')
+            || $user->can('users.view.all')) {
+            return true;
+        }
+        
+        return false;
     }
 
     /**
