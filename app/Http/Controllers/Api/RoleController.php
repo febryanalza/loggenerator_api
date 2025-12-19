@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Illuminate\Support\Facades\Log;
 
 class RoleController extends Controller
 {
@@ -528,64 +529,95 @@ class RoleController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
+    /**
+     * Get permission matrix for role-permission management UI.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getPermissionMatrix()
     {
         try {
+            // Load all roles with their permissions
             $roles = Role::with('permissions')->orderBy('name')->get();
+            
+            // Load all permissions
             $permissions = Permission::orderBy('name')->get();
 
-            // Build matrix
+            Log::info('Permission Matrix loaded', [
+                'total_roles' => $roles->count(),
+                'total_permissions' => $permissions->count()
+            ]);
+
+            // Build matrix - map each role with all permissions and their status
             $matrix = [];
             foreach ($roles as $role) {
-                $rolePermissions = $role->permissions->pluck('id')->toArray();
+                $rolePermissionIds = $role->permissions->pluck('id')->toArray();
+                
+                $permissionsData = [];
+                foreach ($permissions as $perm) {
+                    $permissionsData[] = [
+                        'permission_id' => $perm->id,
+                        'permission_name' => $perm->name,
+                        'has_permission' => in_array($perm->id, $rolePermissionIds)
+                    ];
+                }
+                
                 $matrix[] = [
                     'role_id' => $role->id,
                     'role_name' => $role->name,
                     'is_system' => in_array($role->name, ['Super Admin', 'Admin', 'Manager', 'Institution Admin', 'User']),
-                    'permissions' => collect($permissions)->map(function ($perm) use ($rolePermissions) {
-                        return [
-                            'permission_id' => $perm->id,
-                            'permission_name' => $perm->name,
-                            'has_permission' => in_array($perm->id, $rolePermissions)
-                        ];
-                    })
+                    'permissions' => $permissionsData
                 ];
             }
 
-            // Group permissions by category
-            $groupedPermissions = $permissions->groupBy(function ($perm) {
-                $parts = explode('.', $perm->name);
-                return $parts[0] ?? 'other';
-            });
-
             return response()->json([
                 'success' => true,
+                'message' => 'Permission matrix loaded successfully',
                 'data' => [
                     'roles' => $roles->map(function ($r) {
                         return [
                             'id' => $r->id,
                             'name' => $r->name,
-                            'is_system' => in_array($r->name, ['Super Admin', 'Admin', 'Manager', 'Institution Admin', 'User'])
+                            'is_system' => in_array($r->name, ['Super Admin', 'Admin', 'Manager', 'Institution Admin', 'User']),
+                            'permissions_count' => $r->permissions->count()
                         ];
-                    }),
+                    })->values(),
                     'permissions' => $permissions->map(function ($p) {
+                        $parts = explode('.', $p->name);
                         return [
                             'id' => $p->id,
                             'name' => $p->name,
-                            'category' => explode('.', $p->name)[0] ?? 'other'
+                            'category' => $parts[0] ?? 'other',
+                            'scope' => $parts[1] ?? null
                         ];
-                    }),
-                    'grouped_permissions' => $groupedPermissions,
+                    })->values(),
                     'matrix' => $matrix
                 ]
-            ]);
+            ], 200);
+            
         } catch (\Exception $e) {
+            Log::error('Failed to get permission matrix', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to get permission matrix',
-                'error' => $e->getMessage()
+                'message' => 'Failed to load permission matrix',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
             ], 500);
         }
+    }
+
+    /**
+     * Get role assignment history from audit logs (Alias for backward compatibility).
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getRoleAssignmentHistory(Request $request)
+    {
+        return $this->getAssignmentHistory($request);
     }
 
     /**
@@ -650,6 +682,17 @@ class RoleController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Update role permissions from matrix (Alias for syncPermissions).
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function updateRolePermissions(Request $request)
+    {
+        return $this->syncPermissions($request);
     }
 
     /**

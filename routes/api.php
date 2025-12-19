@@ -336,6 +336,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // Role management routes - Admin+ can view and manage roles (but not create new roles)
     Route::middleware('permission:roles.manage')->group(function () {
         Route::get('/roles', [RoleController::class, 'index']);
+        
+        // IMPORTANT: Specific routes MUST come before dynamic {id} routes
+        // Role & Permission Manager API routes (specific paths)
+        Route::get('/roles/stats', [RoleController::class, 'getStats']);
+        Route::get('/roles/matrix', [RoleController::class, 'getPermissionMatrix']);
+        Route::get('/roles/history', [RoleController::class, 'getRoleAssignmentHistory']);
+        
+        // Dynamic routes with parameters (must come after specific routes)
         Route::get('/roles/{id}', [RoleController::class, 'show']);
         Route::get('/roles/{id}/users', [RoleController::class, 'getRoleUsers']);
         
@@ -348,11 +356,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/roles/custom/{id}', [RoleController::class, 'updateCustomRole']);
             Route::delete('/roles/custom/{id}', [RoleController::class, 'deleteCustomRole']);
         });
-        
-        // Role & Permission Manager API routes
-        Route::get('/roles/stats', [RoleController::class, 'getStats']);
-        Route::get('/roles/matrix', [RoleController::class, 'getPermissionMatrix']);
-        Route::get('/roles/history', [RoleController::class, 'getRoleAssignmentHistory']);
     });
     
     // Notification routes - All authenticated users can view their notifications

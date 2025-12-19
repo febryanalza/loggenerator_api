@@ -23,6 +23,9 @@ class DatabaseSeeder extends Seeder
             // Core system setup - Application roles
             RoleSeeder::class,
             
+            // Assign permissions to roles (must be after RoleSeeder and migrations)
+            RolePermissionSeeder::class,
+            
             // Logbook-specific roles and permissions (separate system)
             LogbookRoleSeeder::class,
             LogbookPermissionSeeder::class,

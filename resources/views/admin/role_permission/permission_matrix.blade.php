@@ -96,20 +96,34 @@ const PermissionMatrixManager = {
                 }
             });
 
-            if (!response.ok) throw new Error('Failed to load matrix');
+            console.log('Matrix API Response Status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Matrix API Error:', errorText);
+                throw new Error(`Failed to load matrix: ${response.status} - ${errorText}`);
+            }
 
             const result = await response.json();
+            console.log('Matrix API Result:', result);
             
             if (result.success) {
                 this.matrixData = result.data;
                 this.renderMatrix();
+            } else {
+                throw new Error(result.message || 'Failed to load matrix data');
             }
         } catch (error) {
             console.error('Failed to load matrix:', error);
             container.innerHTML = `
                 <div class="text-center py-8 text-red-500">
-                    <i class="fas fa-exclamation-circle text-2xl"></i>
-                    <p class="mt-2">Failed to load permission matrix</p>
+                    <i class="fas fa-exclamation-circle text-2xl mb-3"></i>
+                    <p class="mt-2 font-semibold">Failed to load permission matrix</p>
+                    <p class="mt-1 text-sm text-gray-600">${error.message}</p>
+                    <button onclick="PermissionMatrixManager.loadMatrix()" 
+                        class="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                        <i class="fas fa-sync-alt mr-2"></i> Retry
+                    </button>
                 </div>
             `;
         }
