@@ -128,11 +128,13 @@ return [
             'remove_column' => 'Remove Column',
         ],
         'table' => [
+            'name' => 'Template Name',
             'template' => 'Template',
             'institution' => 'Institution',
             'columns_count' => 'Column Count',
             'status' => 'Status',
             'actions' => 'Actions',
+            'columns' => 'Columns',
         ],
         'status_active' => 'Active',
         'status_inactive' => 'Inactive',

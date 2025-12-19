@@ -32,11 +32,6 @@
                 <label class="text-sm text-gray-600">Filter Role:</label>
                 <select id="roleFilter" class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500">
                     <option value="">All Roles</option>
-                    <option value="Super Admin">Super Admin</option>
-                    <option value="Admin">Admin</option>
-                    <option value="Manager">Manager</option>
-                    <option value="Institution Admin">Institution Admin</option>
-                    <option value="User">User</option>
                 </select>
             </div>
             
@@ -225,10 +220,6 @@
                             onchange="handleRoleChange()"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
                         <option value="">Select Role</option>
-                        <option value="Admin">Admin</option>
-                        <option value="Manager">Manager</option>
-                        <option value="Institution Admin">Institution Admin</option>
-                        <option value="User">User</option>
                     </select>
                 </div>
                 
@@ -290,9 +281,6 @@
                         required
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
                     <option value="">Select New Role</option>
-                    <option value="Admin">Admin</option>
-                    <option value="Manager">Manager</option>
-                    <option value="User">User</option>
                 </select>
             </div>
             
@@ -360,8 +348,10 @@ let filteredUsers = [];
 let currentPage = 1;
 let perPage = 10;
 let institutions = [];
+let availableRoles = [];
 const USERS_CACHE_KEY = 'users_management_cache';
 const INSTITUTIONS_CACHE_KEY = 'institutions_cache';
+const ROLES_CACHE_KEY = 'roles_cache';
 const CACHE_DURATION = 10 * 60 * 1000; // 10 MENIT
 
 // CACHE FUNCTIONS
@@ -424,6 +414,7 @@ function clearCacheData(cacheKey) {
     } else {
         localStorage.removeItem(USERS_CACHE_KEY);
         localStorage.removeItem(INSTITUTIONS_CACHE_KEY);
+        localStorage.removeItem(ROLES_CACHE_KEY);
         console.log('🗑️ Semua cache dihapus');
     }
 }
@@ -457,6 +448,12 @@ async function initUserManagement() {
             } catch (instError) {
                 console.error('Failed to load institutions:', instError);
                 // Continue execution even if institution loading fails
+            }
+
+            try {
+                await loadRoles();
+            } catch (roleError) {
+                console.error('Failed to load roles:', roleError);
             }
             
             // Hide loading indicator and show main content
@@ -556,6 +553,160 @@ async function loadInstitutions(forceRefresh = false) {
         console.error('Load institutions error:', error);
         institutions = [];
     }
+}
+
+async function loadRoles(forceRefresh = false) {
+    const token = localStorage.getItem('admin_token');
+
+    if (!token) {
+        console.warn('Tidak ada token untuk memuat roles');
+        return;
+    }
+
+    if (!forceRefresh) {
+        const cachedRoles = getCache(ROLES_CACHE_KEY);
+        if (cachedRoles !== null) {
+            availableRoles = cachedRoles;
+            console.log('📦 Menggunakan data role dari cache');
+            populateRoleFilter();
+            populateRoleDropdowns();
+            return;
+        }
+    }
+
+    const endpoints = [
+        '/api/institution/all-roles',
+        '/api/roles?per_page=100'
+    ];
+
+    for (const url of endpoints) {
+        try {
+            console.log(`🌐 Memanggil API roles: ${url}`);
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                console.warn(`⚠️ Tidak dapat memuat roles dari ${url} - Status: ${response.status}`);
+                continue;
+            }
+
+            const payload = await response.json();
+            const rawRoles = Array.isArray(payload?.data) ? payload.data : [];
+
+            if (!rawRoles.length) {
+                console.warn(`⚠️ Response roles dari ${url} kosong`);
+                continue;
+            }
+
+            availableRoles = normalizeRoleOptions(rawRoles);
+            setCache(ROLES_CACHE_KEY, availableRoles);
+            populateRoleFilter();
+            populateRoleDropdowns();
+            return;
+        } catch (error) {
+            console.error(`❌ Error saat memuat roles dari ${url}:`, error);
+        }
+    }
+
+    console.warn('⚠️ Roles tidak dapat dimuat, menggunakan daftar kosong');
+    availableRoles = [];
+    populateRoleFilter();
+    populateRoleDropdowns();
+}
+
+function normalizeRoleOptions(rawRoles) {
+    const map = new Map();
+
+    rawRoles.forEach(role => {
+        if (!role || !role.name) {
+            return;
+        }
+
+        const name = role.name;
+        const label = name;
+
+        if (!map.has(name)) {
+            map.set(name, {
+                id: role.id ?? null,
+                name: name,
+                label: label
+            });
+        }
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function populateRoleFilter() {
+    const filterSelect = document.getElementById('roleFilter');
+    if (!filterSelect) {
+        return;
+    }
+
+    const currentValue = filterSelect.value;
+    let optionsHtml = '<option value="">All Roles</option>';
+
+    availableRoles.forEach(role => {
+        optionsHtml += `<option value="${escapeHtml(role.name)}">${escapeHtml(role.label)}</option>`;
+    });
+
+    filterSelect.innerHTML = optionsHtml;
+
+    if (currentValue && availableRoles.some(role => role.name === currentValue)) {
+        filterSelect.value = currentValue;
+    }
+}
+
+function populateRoleDropdowns() {
+    const createSelect = document.getElementById('userRole');
+    if (createSelect) {
+        const currentValue = createSelect.value;
+        let optionsHtml = '<option value="">Select Role</option>';
+
+        availableRoles.forEach(role => {
+            const disabledAttr = role.name === 'Super Admin' ? ' disabled' : '';
+            optionsHtml += `<option value="${escapeHtml(role.name)}"${disabledAttr}>${escapeHtml(role.label)}</option>`;
+        });
+
+        createSelect.innerHTML = optionsHtml;
+
+        if (currentValue && availableRoles.some(role => role.name === currentValue)) {
+            createSelect.value = currentValue;
+        }
+    }
+
+    const updateSelect = document.getElementById('newRole');
+    if (updateSelect) {
+        const currentValue = updateSelect.value;
+        let optionsHtml = '<option value="">Select New Role</option>';
+
+        availableRoles.forEach(role => {
+            const disabledAttr = role.name === 'Super Admin' ? ' disabled' : '';
+            optionsHtml += `<option value="${escapeHtml(role.name)}"${disabledAttr}>${escapeHtml(role.label)}</option>`;
+        });
+
+        updateSelect.innerHTML = optionsHtml;
+
+        if (currentValue && availableRoles.some(role => role.name === currentValue)) {
+            updateSelect.value = currentValue;
+        }
+    }
+}
+
+function escapeHtml(text) {
+    if (text === null || text === undefined) {
+        return '';
+    }
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 function populateInstitutionDropdown() {
@@ -792,6 +943,7 @@ function openCreateUserModal() {
     document.getElementById('submitBtnText').textContent = 'Create User';
     document.getElementById('formError').classList.add('hidden');
     document.getElementById('institutionField').classList.add('hidden');
+    populateRoleDropdowns();
     
     const modal = document.getElementById('userModal');
     modal.classList.remove('hidden');
@@ -893,6 +1045,7 @@ document.getElementById('userForm').addEventListener('submit', async function(e)
 function openChangeRoleModal(userId) {
     const user = allUsers.find(u => u.id === userId);
     if (!user) return;
+    populateRoleDropdowns();
     
     let roleText = '-';
     if (user.roles) {
@@ -1064,6 +1217,7 @@ async function refreshUserData() {
         clearCacheData();
         await loadUsers(true);
         await loadInstitutions(true);
+        await loadRoles(true);
         showToast('Data berhasil diperbarui', 'success');
     } catch (error) {
         showToast('Gagal memperbarui data', 'error');

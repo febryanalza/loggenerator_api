@@ -209,7 +209,9 @@ window.datatypesTranslations = {!! json_encode([
 ]) !!};
 </script>
 <script>
-// Data Types Manager Module\nconst DataTypesManager = {\n    allDataTypes: [],
+// Data Types Manager Module
+const DataTypesManager = {
+    allDataTypes: [],
     dataTypeToDelete: null,
     editingId: null,
     CACHE_KEY: 'available_datatypes_cache',
