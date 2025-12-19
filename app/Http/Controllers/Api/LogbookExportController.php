@@ -747,12 +747,12 @@ class LogbookExportController extends Controller
             // Check deletion permission with proper hierarchy
             $canDelete = false;
             
-            // Administrative override - Super Admin, Admin, Manager can delete any export
-            if ($user->hasAnyRole(['Super Admin', 'Admin', 'Manager'])) {
+            // Administrative override - users with delete permission can delete any export
+            if ($user->can('logbooks.export.delete.any')) {
                 $canDelete = true;
             }
             // Institution Admin can delete exports within their institution
-            elseif ($user->hasRole('Institution Admin') && $export->template->institution_id === $user->institution_id) {
+            elseif ($user->can('logbooks.export.delete.institution') && $export->template->institution_id === $user->institution_id) {
                 $canDelete = true;
             }
             // Template creator can delete exports of their templates
@@ -982,13 +982,13 @@ class LogbookExportController extends Controller
      */
     private function checkUserAccess($user, LogbookTemplate $template): bool
     {
-        // Super Admin, Admin, and Manager have full access to all templates
-        if ($user->hasAnyRole(['Super Admin', 'Admin', 'Manager'])) {
+        // Users with full template view permission have access to all templates
+        if ($user->can('templates.view.all')) {
             return true;
         }
 
         // Institution Admin has access to templates within their institution
-        if ($user->hasRole('Institution Admin')) {
+        if ($user->can('templates.view.institution')) {
             // Check if template belongs to the same institution as the user
             if ($template->institution_id === $user->institution_id) {
                 return true;
@@ -1009,7 +1009,7 @@ class LogbookExportController extends Controller
     }
 
     /**
-     * Check if user has administrative roles that can override logbook permissions
+     * Check if user has administrative permissions that can override logbook permissions
      * Used for operations that require elevated privileges
      *
      * @param  User  $user
@@ -1017,7 +1017,9 @@ class LogbookExportController extends Controller
      */
     private function hasAdministrativeOverride($user): bool
     {
-        return $user->hasAnyRole(['Super Admin', 'Admin', 'Manager', 'Institution Admin']);
+        return $user->can('logbooks.export.manage')
+            || $user->can('users.manage')
+            || $user->can('system.admin');
     }
 
     /**

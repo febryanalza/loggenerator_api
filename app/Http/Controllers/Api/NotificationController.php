@@ -85,7 +85,7 @@ class NotificationController extends Controller
         }
         
         // Check authorization (only admins can send notifications to users)
-        if (!$request->user()->hasRole(['Super Admin', 'Admin', 'Manager'])) {
+        if (!$request->user()->can('notifications.send')) {
             return response()->json([
                 'success' => false,
                 'message' => 'You are not authorized to send notifications'
@@ -156,7 +156,7 @@ class NotificationController extends Controller
         }
         
         // Check authorization (only admins can send notifications to role groups)
-        if (!$request->user()->hasRole(['Super Admin', 'Admin'])) {
+        if (!$request->user()->can('notifications.send.to-role')) {
             return response()->json([
                 'success' => false,
                 'message' => 'You are not authorized to send notifications to role groups'

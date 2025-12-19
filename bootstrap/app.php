@@ -19,12 +19,13 @@ return Application::configure(basePath: dirname(__DIR__))
         
         // Register custom middleware aliases
         $middleware->alias([
-            'role' => \App\Http\Middleware\CheckRole::class,
-            'permission' => \App\Http\Middleware\CheckPermission::class,
-            'logbook.access' => \App\Http\Middleware\CheckLogbookAccess::class,
+            'role' => \App\Http\Middleware\CheckRole::class, // DEPRECATED: Use 'permission' instead
+            'permission' => \App\Http\Middleware\CheckPermission::class, // ENHANCED: Now uses Spatie built-in methods
+            'logbook.access' => \App\Http\Middleware\CheckLogbookAccess::class, // Unchanged: Data-level access
             'template.owner' => \App\Http\Middleware\CheckTemplateOwnership::class,
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'token.expiration' => \App\Http\Middleware\CheckTokenExpiration::class,
+            'throttle.sensitive' => \App\Http\Middleware\SensitiveEndpointThrottle::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

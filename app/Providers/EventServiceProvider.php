@@ -5,9 +5,15 @@ namespace App\Providers;
 use App\Events\LogbookAccessGranted;
 use App\Events\LogbookDataUpdated;
 use App\Events\SupervisorAddedToTemplate;
+use App\Events\PermissionChanged;
+use App\Events\RoleAssigned;
+use App\Events\RoleRevoked;
 use App\Listeners\CreateVerificationRecordsForNewSupervisor;
 use App\Listeners\ResetVerificationsOnDataUpdate;
 use App\Listeners\SendLogbookAccessNotification;
+use App\Listeners\LogPermissionChange;
+use App\Listeners\LogRoleAssignment;
+use App\Listeners\LogRoleRevocation;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 class EventServiceProvider extends ServiceProvider
@@ -26,6 +32,15 @@ class EventServiceProvider extends ServiceProvider
         ],
         LogbookDataUpdated::class => [
             ResetVerificationsOnDataUpdate::class,
+        ],
+        PermissionChanged::class => [
+            LogPermissionChange::class,
+        ],
+        RoleAssigned::class => [
+            LogRoleAssignment::class,
+        ],
+        RoleRevoked::class => [
+            LogRoleRevocation::class,
         ],
     ];
 

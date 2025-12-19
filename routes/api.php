@@ -44,41 +44,19 @@ Route::get('/health', function () {
     ]);
 });
 
-// Test email endpoint (TEMPORARY - Remove in production)
-Route::post('/test-send-email', function(Request $request) {
-    try {
-        $email = $request->input('email', 'febryanalza@gmail.com');
-        
-        \Illuminate\Support\Facades\Mail::raw('Test email from LogGenerator API - ' . now(), function($message) use ($email) {
-            $message->to($email)
-                    ->subject('Test Email - LogGenerator API');
-        });
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Test email sent successfully!',
-            'email' => $email,
-            'timestamp' => now()
-        ]);
-    } catch (Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to send email',
-            'error' => $e->getMessage()
-        ], 500);
-    }
-});
+// Test email endpoint removed for security - was publicly accessible without authentication
+// If needed for testing, use proper admin endpoint with authentication
 
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/auth/google', [AuthController::class, 'googleLogin']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle.sensitive:5,1'); // 5 attempts per minute
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle.sensitive:3,5'); // 3 attempts per 5 minutes
+Route::post('/auth/google', [AuthController::class, 'googleLogin'])->middleware('throttle.sensitive:10,1');
 
 // Email Verification Routes (public - accessed via email link)
 Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
     ->name('verification.verify');
 
 // Admin Authentication API (No CSRF required - for Postman/API clients)
-Route::post('/admin/login', [AdminAuthController::class, 'login']);
+Route::post('/admin/login', [AdminAuthController::class, 'login'])->middleware('throttle.sensitive:5,1'); // 5 attempts per minute
 
 // Public file access
 Route::get('/images/logbook/{filename}', [FileController::class, 'getLogbookImage']);
@@ -155,7 +133,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/institutions', [\App\Http\Controllers\Api\InstitutionController::class, 'index']);
     
     // Institution routes - Admin management (full CRUD operations)
-    Route::middleware('role:Super Admin,Admin,Manager')->group(function () {
+    Route::middleware('permission:institutions.manage')->group(function () {
         Route::get('/institutions/details', [\App\Http\Controllers\Api\InstitutionController::class, 'getAllDetails']);
         Route::get('/institutions/{id}', [\App\Http\Controllers\Api\InstitutionController::class, 'show']);
         Route::get('/institutions/{id}/templates', [\App\Http\Controllers\Api\InstitutionController::class, 'getTemplatesByInstitution']);
@@ -165,12 +143,12 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     
     // Institution members - accessible by Institution Admin for their own institution
-    Route::middleware('role:Super Admin,Admin,Manager,Institution Admin')->group(function () {
+    Route::middleware('permission:institution.view-members')->group(function () {
         Route::get('/institutions/{id}/members', [\App\Http\Controllers\Api\InstitutionController::class, 'getMembersByInstitution']);
     });
     
     // Institution Admin - manage their own institution
-    Route::prefix('institution')->middleware('role:Institution Admin')->group(function () {
+    Route::prefix('institution')->middleware('permission:institution.manage-own')->group(function () {
         Route::get('/my-institution', [\App\Http\Controllers\Api\InstitutionController::class, 'getMyInstitution']);
         Route::put('/my-institution', [\App\Http\Controllers\Api\InstitutionController::class, 'updateMyInstitution']);
     });
@@ -184,7 +162,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/available-data-types/{id}', [AvailableDataTypeController::class, 'show']);
     
     // Admin only - CRUD operations for data types
-    Route::middleware('role:Super Admin,Admin')->group(function () {
+    Route::middleware('permission:data-types.manage')->group(function () {
         Route::post('/available-data-types', [AvailableDataTypeController::class, 'store']);
         Route::put('/available-data-types/{id}', [AvailableDataTypeController::class, 'update']);
         Route::patch('/available-data-types/{id}/toggle', [AvailableDataTypeController::class, 'toggleActive']);
@@ -202,7 +180,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/available-templates/{id}', [AvailableTemplateController::class, 'show']);
     
     // Admin, Manager, and Institution Admin - CRUD operations for templates
-    Route::middleware('role:Super Admin,Admin,Manager,Institution Admin')->group(function () {
+    Route::middleware('permission:templates.manage')->group(function () {
         Route::post('/available-templates', [AvailableTemplateController::class, 'store']);
         Route::put('/available-templates/{id}', [AvailableTemplateController::class, 'update']);
         Route::patch('/available-templates/{id}/toggle', [AvailableTemplateController::class, 'toggleActive']);
@@ -303,8 +281,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // Delete specific export (requires appropriate permission)
         Route::delete('/{exportId}', [\App\Http\Controllers\Api\LogbookExportController::class, 'deleteExport']);
         
-        // Administrative routes (Super Admin, Admin, Manager, Institution Admin)
-        Route::middleware('role:Super Admin|Admin|Manager|Institution Admin')->group(function () {
+        // Administrative routes (requires logbook export management permission)
+        Route::middleware('permission:logbooks.export.manage')->group(function () {
             // Get export statistics
             Route::get('/admin/stats', [\App\Http\Controllers\Api\LogbookExportController::class, 'getExportStats']);
             
@@ -313,40 +291,68 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
     
+    // ===============================================
+    // Permission Registry & Dynamic Permission Management
+    // ===============================================
+    Route::prefix('permission-registry')->group(function () {
+        // View permission registry (all authenticated users can see available permissions)
+        Route::get('/', [\App\Http\Controllers\Api\PermissionRegistryController::class, 'index']);
+        Route::get('/risk-level/{riskLevel}', [\App\Http\Controllers\Api\PermissionRegistryController::class, 'getByRiskLevel']);
+        Route::get('/my-permissions', [\App\Http\Controllers\Api\PermissionRegistryController::class, 'myPermissions']);
+        
+        // Admin routes for permission management
+        Route::middleware('permission:permissions.view')->group(function () {
+            Route::get('/sync-status', [\App\Http\Controllers\Api\PermissionRegistryController::class, 'syncStatus']);
+            Route::get('/role-matrix', [\App\Http\Controllers\Api\PermissionRegistryController::class, 'rolePermissionMatrix']);
+        });
+        
+        // Cache management (Super Admin only)
+        Route::middleware('permission:permissions.manage')->group(function () {
+            Route::post('/clear-cache', [\App\Http\Controllers\Api\PermissionRegistryController::class, 'clearCache']);
+        });
+    });
+    
+    // ===============================================
+    // Permission & Role Management (Legacy - being migrated)
+    // ===============================================
     // Permission routes - View access for Admin+, Create operations Super Admin only
-    Route::middleware('role:Super Admin, Admin')->group(function () {
+    Route::middleware('permission:permissions.view')->group(function () {
         Route::get('/permissions', [PermissionController::class, 'index']);
         Route::get('/permissions/{id}', [PermissionController::class, 'show']);
     });
     
     // Permission creation routes - Super Admin only (critical system operations)
-    Route::middleware('role:Super Admin')->group(function () {
+    Route::middleware(['permission:permissions.create', 'throttle.sensitive:10,1'])->group(function () {
         Route::post('/permissions', [PermissionController::class, 'store']);
         Route::post('/permissions/batch', [PermissionController::class, 'storeBatch']);
     });
     
     // Role-Permission assignment routes - Admin+ can manage role permissions
-    Route::middleware('role:Super Admin,Admin')->group(function () {
+    Route::middleware(['permission:roles.assign-permissions', 'throttle.sensitive:20,1'])->group(function () {
         Route::post('/permissions/assign-to-role', [PermissionController::class, 'assignToRole']);
         Route::post('/permissions/revoke-from-role', [PermissionController::class, 'revokeFromRole']);
     });
     
     // Role management routes - Admin+ can view and manage roles (but not create new roles)
-    Route::middleware('role:Super Admin,Admin')->group(function () {
+    Route::middleware('permission:roles.manage')->group(function () {
         Route::get('/roles', [RoleController::class, 'index']);
         Route::get('/roles/{id}', [RoleController::class, 'show']);
         Route::get('/roles/{id}/users', [RoleController::class, 'getRoleUsers']);
-        Route::post('/roles/assign-permissions', [RoleController::class, 'assignPermissions']);
-        Route::post('/roles/revoke-permissions', [RoleController::class, 'revokePermissions']);
+        
+        // Protected with rate limiting for sensitive operations
+        Route::middleware('throttle.sensitive:20,1')->group(function () {
+            Route::post('/roles/assign-permissions', [RoleController::class, 'assignPermissions']);
+            Route::post('/roles/revoke-permissions', [RoleController::class, 'revokePermissions']);
+            Route::post('/roles/matrix/update', [RoleController::class, 'updateRolePermissions']);
+            Route::post('/roles/custom', [RoleController::class, 'createCustomRole']);
+            Route::put('/roles/custom/{id}', [RoleController::class, 'updateCustomRole']);
+            Route::delete('/roles/custom/{id}', [RoleController::class, 'deleteCustomRole']);
+        });
         
         // Role & Permission Manager API routes
         Route::get('/roles/stats', [RoleController::class, 'getStats']);
         Route::get('/roles/matrix', [RoleController::class, 'getPermissionMatrix']);
-        Route::post('/roles/matrix/update', [RoleController::class, 'updateRolePermissions']);
         Route::get('/roles/history', [RoleController::class, 'getRoleAssignmentHistory']);
-        Route::post('/roles/custom', [RoleController::class, 'createCustomRole']);
-        Route::put('/roles/custom/{id}', [RoleController::class, 'updateCustomRole']);
-        Route::delete('/roles/custom/{id}', [RoleController::class, 'deleteCustomRole']);
     });
     
     // Notification routes - All authenticated users can view their notifications
@@ -357,7 +363,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
     
     // Notification management - Admin+ role only
-    Route::middleware('role:Super Admin,Admin,Manager')->group(function () {
+    Route::middleware('permission:notifications.send')->group(function () {
         Route::post('/notifications/send', [NotificationController::class, 'send']);
         Route::post('/notifications/send-to-role', [NotificationController::class, 'sendToRole']);
     });
@@ -366,24 +372,27 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/upload/image', [FileController::class, 'uploadImage']);
     
     // User search - accessible by Admin roles including Institution Admin
-    Route::middleware('role:Super Admin,Admin,Manager,Institution Admin')->group(function () {
+    Route::middleware('permission:users.search')->group(function () {
         Route::get('/users/search', [UserManagementController::class, 'searchUsers']);
     });
     
     // Institution Admin - Add members to their own institution
-    Route::middleware('role:Institution Admin')->group(function () {
+    Route::middleware('permission:institution.manage-members')->group(function () {
         Route::post('/institution/members', [UserManagementController::class, 'addInstitutionMember']);
         Route::get('/institution/assignable-roles', [RoleController::class, 'getAssignableRolesForInstitutionAdmin']);
         Route::get('/institution/all-roles', [RoleController::class, 'getAllRolesList']);
     });
     
     // Admin only routes
-    Route::middleware('role:Super Admin,Admin')->group(function () {
+    Route::middleware('permission:users.manage')->group(function () {
         // User management - accessible by Super Admin and Admin
-        Route::post('/admin/users', [UserManagementController::class, 'createUser']);
+        Route::middleware('throttle.sensitive:30,1')->group(function () {
+            Route::post('/admin/users', [UserManagementController::class, 'createUser']);
+            Route::put('/admin/users/{userId}/role', [UserManagementController::class, 'updateUserRole']);
+            Route::delete('/admin/users/{userId}', [UserManagementController::class, 'deleteUser']);
+        });
+        
         Route::get('/admin/users', [UserManagementController::class, 'getUsers']);
-        Route::put('/admin/users/{userId}/role', [UserManagementController::class, 'updateUserRole']);
-        Route::delete('/admin/users/{userId}', [UserManagementController::class, 'deleteUser']);
         
         // System management routes
         // Route::get('/admin/system-info', [SystemController::class, 'info']);
@@ -391,7 +400,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     
     // Super Admin only routes
-    Route::middleware('role:Super Admin')->group(function () {
+    Route::middleware('permission:system.admin')->group(function () {
         // Critical system operations only for Super Admin
         // Route::delete('/admin/purge-data', [SystemController::class, 'purgeData']);
         // Route::post('/admin/reset-permissions', [SystemController::class, 'resetPermissions']);

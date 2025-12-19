@@ -127,6 +127,14 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        // Permission migration tracking (remove after migration complete)
+        'permission' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/permission-migration.log'),
+            'level' => 'info',
+            'days' => 30,
+        ],
+
     ],
 
 ];

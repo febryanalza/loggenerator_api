@@ -170,19 +170,14 @@ class AdminAuthController extends Controller
     }
 
     /**
-     * Check if user has admin roles
+     * Check if user has admin permissions
      */
     private function isAdminUser(User $user): bool
     {
-        $adminRoles = $this->getAdminRoles();
-        
-        foreach ($adminRoles as $role) {
-            if ($user->hasRole($role)) {
-                return true;
-            }
-        }
-        
-        return false;
+        // Check if user has any admin-level permission
+        return $user->can('users.manage') 
+            || $user->can('system.admin')
+            || $user->can('institution.manage-members');
     }
 
     /**

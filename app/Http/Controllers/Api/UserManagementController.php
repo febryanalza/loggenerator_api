@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateUserRequest;
 use App\Models\User;
 use App\Models\Institution;
+use App\Events\RoleAssigned;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -25,10 +26,10 @@ class UserManagementController extends Controller
         $currentUser = $request->user();
         
         // Verify that the authenticated user has permission
-        if (!$currentUser->hasAnyRole(['Super Admin', 'Admin'])) {
+        if (!$currentUser->can('users.create')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized. Only Super Admin and Admin can create users with roles.'
+                'message' => 'Unauthorized. You need users.create permission.'
             ], 403);
         }
 
@@ -36,11 +37,13 @@ class UserManagementController extends Controller
             // Validate role exists
             $roleName = $request->role;
             
-            // Define allowed roles based on current user's role
-            if ($currentUser->hasRole('Super Admin')) {
+            // Define allowed roles based on current user's permissions
+            if ($currentUser->can('users.assign-role.any')) {
                 $allowedRoles = ['Admin', 'Manager', 'User', 'Institution Admin'];
-            } else if ($currentUser->hasRole('Admin')) {
+            } else if ($currentUser->can('users.assign-role.basic')) {
                 $allowedRoles = ['Manager', 'User', 'Institution Admin'];
+            } else {
+                $allowedRoles = ['User'];
             }
             
             if (!in_array($roleName, $allowedRoles)) {
@@ -81,6 +84,18 @@ class UserManagementController extends Controller
 
             // Assign role to user
             $user->assignRole([$roleName]);
+
+            // Fire event for audit logging
+            event(new RoleAssigned(
+                userId: $user->id,
+                userName: $user->name,
+                roleName: $roleName,
+                performedBy: $currentUser->name,
+                metadata: [
+                    'institution_id' => $request->institution_id ?? null,
+                    'auto_verified' => true
+                ]
+            ));
 
             // Get current user role for audit log
             $currentUserRole = $currentUser->getRoleNames()->first();
@@ -163,10 +178,10 @@ class UserManagementController extends Controller
         $currentUser = $request->user();
         
         // Verify that the authenticated user has permission
-        if (!$currentUser->hasAnyRole(['Super Admin', 'Admin'])) {
+        if (!$currentUser->can('users.view.all')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized. Only Super Admin and Admin can view users.'
+                'message' => 'Unauthorized. You need users.view.all permission.'
             ], 403);
         }
 
@@ -278,11 +293,11 @@ class UserManagementController extends Controller
      */
     public function updateUserRole(Request $request, string $userId)
     {
-        // Verify that the authenticated user is Super Admin
-        if (!$request->user()->hasRole('Super Admin')) {
+        // Verify that the authenticated user has permission
+        if (!$request->user()->can('users.assign-role.any')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized. Only Super Admin can update user roles.'
+                'message' => 'Unauthorized. You need users.assign-role.any permission.'
             ], 403);
         }
 
@@ -314,6 +329,24 @@ class UserManagementController extends Controller
 
             // Remove all current roles and assign new one
             $user->syncRoles([$newRoleName]);
+
+            // Fire events for audit logging
+            foreach ($oldRoles as $oldRole) {
+                event(new \App\Events\RoleRevoked(
+                    userId: $user->id,
+                    userName: $user->name,
+                    roleName: $oldRole,
+                    performedBy: $request->user()->name
+                ));
+            }
+            
+            event(new RoleAssigned(
+                userId: $user->id,
+                userName: $user->name,
+                roleName: $newRoleName,
+                performedBy: $request->user()->name,
+                metadata: ['old_roles' => $oldRoles]
+            ));
 
             // Create audit log
             \App\Models\AuditLog::create([
@@ -365,10 +398,10 @@ class UserManagementController extends Controller
         $currentUser = $request->user();
         
         // Verify that the authenticated user has permission
-        if (!$currentUser->hasAnyRole(['Super Admin', 'Admin'])) {
+        if (!$currentUser->can('users.delete')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized. Only Super Admin and Admin can delete users.'
+                'message' => 'Unauthorized. You need users.delete permission.'
             ], 403);
         }
 
@@ -383,19 +416,19 @@ class UserManagementController extends Controller
                 ], 422);
             }
 
-            // Admin cannot delete Super Admin
-            if ($currentUser->hasRole('Admin') && $userToDelete->hasRole('Super Admin')) {
+            // Users with basic delete cannot delete Super Admin
+            if (!$currentUser->can('users.delete.any') && $userToDelete->can('system.admin')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Admin cannot delete Super Admin users.'
+                    'message' => 'You cannot delete Super Admin users.'
                 ], 403);
             }
 
-            // Admin cannot delete other Admins
-            if ($currentUser->hasRole('Admin') && $userToDelete->hasRole('Admin')) {
+            // Users with basic delete cannot delete other Admins
+            if (!$currentUser->can('users.delete.any') && $userToDelete->can('users.manage')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Admin cannot delete other Admin users.'
+                    'message' => 'You cannot delete Admin users.'
                 ], 403);
             }
 
@@ -465,10 +498,10 @@ class UserManagementController extends Controller
         $currentUser = $request->user();
         
         // Verify that the authenticated user has permission
-        if (!$currentUser->hasAnyRole(['Super Admin', 'Admin', 'Manager', 'Institution Admin'])) {
+        if (!$currentUser->can('users.search')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized.'
+                'message' => 'Unauthorized. You need users.search permission.'
             ], 403);
         }
 
@@ -487,7 +520,7 @@ class UserManagementController extends Controller
             }
             
             // For Institution Admin, optionally filter to same institution
-            if ($currentUser->hasRole('Institution Admin') && $currentUser->institution_id) {
+            if ($currentUser->can('institution.view-members') && $currentUser->institution_id) {
                 // Can search all users but prioritize same institution
                 $query->orderByRaw("CASE WHEN institution_id = ? THEN 0 ELSE 1 END", [$currentUser->institution_id]);
             }
@@ -534,15 +567,15 @@ class UserManagementController extends Controller
     {
         $currentUser = $request->user();
         
-        // Verify that the authenticated user is Institution Admin
-        if (!$currentUser->hasRole('Institution Admin')) {
+        // Verify that the authenticated user has permission
+        if (!$currentUser->can('institution.manage-members')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized. Only Institution Admin can add members.'
+                'message' => 'Unauthorized. You need institution.manage-members permission.'
             ], 403);
         }
 
-        // Ensure Institution Admin has an institution
+        // Ensure user has an institution
         if (!$currentUser->institution_id) {
             return response()->json([
                 'success' => false,

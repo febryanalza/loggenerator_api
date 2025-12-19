@@ -14,23 +14,6 @@ use Illuminate\Support\Facades\Validator;
 class InstitutionController extends Controller
 {
     /**
-     * Check if user has a specific role.
-     *
-     * @param User $user
-     * @param string $roleName
-     * @return bool
-     */
-    private function userHasRole(User $user, string $roleName): bool
-    {
-        return DB::table('model_has_roles')
-            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-            ->where('model_has_roles.model_id', $user->id)
-            ->where('model_has_roles.model_type', User::class)
-            ->where('roles.name', $roleName)
-            ->exists();
-    }
-
-    /**
      * Display a listing of institutions (name and id only) - Public access for all authenticated users.
      * Used for frontend dropdowns and selection components.
      *
@@ -382,7 +365,7 @@ class InstitutionController extends Controller
             $currentUser = Auth::user();
             
             // Institution Admin can only view members of their own institution
-            if ($this->userHasRole($currentUser, 'Institution Admin')) {
+            if ($currentUser->can('institution.view-members') && !$currentUser->can('institutions.view.all')) {
                 if ($currentUser->institution_id !== $id) {
                     return response()->json([
                         'success' => false,
@@ -477,11 +460,11 @@ class InstitutionController extends Controller
             /** @var User $currentUser */
             $currentUser = Auth::user();
             
-            // Check if user is Institution Admin
-            if (!$this->userHasRole($currentUser, 'Institution Admin')) {
+            // Check if user has permission
+            if (!$currentUser->can('institution.view-own')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Only Institution Admin can access this resource'
+                    'message' => 'You need institution.view-own permission to access this resource'
                 ], 403);
             }
             
@@ -524,11 +507,11 @@ class InstitutionController extends Controller
         /** @var User $currentUser */
         $currentUser = Auth::user();
         
-        // Check if user is Institution Admin
-        if (!$this->userHasRole($currentUser, 'Institution Admin')) {
+        // Check if user has permission
+        if (!$currentUser->can('institution.update.own')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Only Institution Admin can update institution'
+                'message' => 'You need institution.update.own permission to update institution'
             ], 403);
         }
         

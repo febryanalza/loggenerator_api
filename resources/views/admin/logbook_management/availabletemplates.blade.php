@@ -155,11 +155,13 @@
 
                     <!-- Is Active Checkbox -->
                     <div class="mb-6">
-                        <label class="flex items-center gap-3 cursor-pointer">
+                        <div class="flex items-center gap-3">
                             <input type="checkbox" id="avt-is-active" checked
-                                class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                            <span class="text-sm font-medium text-gray-700">{{ __('logbook.templates.form.activate_template') }}</span>
-                        </label>
+                                class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer">
+                            <label for="avt-is-active" class="text-sm font-medium text-gray-700 cursor-pointer">
+                                {{ __('logbook.templates.form.activate_template') }}
+                            </label>
+                        </div>
                     </div>
 
                     <!-- Required Columns Section -->
@@ -256,7 +258,7 @@
 
 <script>
 // Translations for JavaScript
-window.templatesTranslations = {!! json_encode(['statusActive' => __('logbook.templates.status_active'), 'statusInactive' => __('logbook.templates.status_inactive'), 'actionsView' => __('logbook.templates.actions_view'), 'actionsEdit' => __('logbook.templates.actions_edit'), 'actionsDelete' => __('logbook.templates.actions_delete'), 'noData' => __('logbook.templates.no_data'), 'noDataDesc' => __('logbook.templates.no_data_description'), 'modalCreateTitle' => __('logbook.templates.modal_create_title'), 'modalEditTitle' => __('logbook.templates.modal_edit_title'), 'save' => __('logbook.templates.save'), 'update' => __('logbook.templates.update'), 'entries' => __('logbook.templates.entries'), 'columns' => __('logbook.templates.form.columns'), 'columnName' => __('logbook.templates.form.column_name'), 'columnNamePlaceholder' => __('logbook.templates.form.column_name_placeholder'), 'columnType' => __('logbook.templates.form.column_type'), 'selectColumnType' => __('logbook.templates.form.select_column_type'), 'columnRequired' => __('logbook.templates.form.column_required'), 'required' => __('logbook.templates.form.required_label'), 'optional' => __('logbook.templates.form.optional_label'), 'removeColumn' => __('logbook.templates.form.remove_column'), 'viewDetailTemplate' => __('logbook.templates.view_detail_template'), 'viewDetailInstitution' => __('logbook.templates.view_detail_institution'), 'viewDetailStatus' => __('logbook.templates.view_detail_status'), 'viewDetailDescription' => __('logbook.templates.view_detail_description'), 'viewDetailColumns' => __('logbook.templates.view_detail_columns'), 'viewDetailColumnName' => __('logbook.templates.view_detail_column_name'), 'viewDetailColumnType' => __('logbook.templates.view_detail_column_type'), 'viewDetailColumnRequired' => __('logbook.templates.view_detail_column_required')]) !!};
+window.templatesTranslations = {!! json_encode(['statusActive' => __('logbook.templates.status_active'), 'statusInactive' => __('logbook.templates.status_inactive'), 'actionsView' => __('logbook.templates.actions_view'), 'actionsEdit' => __('logbook.templates.actions_edit'), 'actionsDelete' => __('logbook.templates.actions_delete'), 'noData' => __('logbook.templates.no_data'), 'noDataDesc' => __('logbook.templates.no_data_description'), 'modalCreateTitle' => __('logbook.templates.modal_create_title'), 'modalEditTitle' => __('logbook.templates.modal_edit_title'), 'save' => __('logbook.templates.save'), 'update' => __('logbook.templates.update'), 'entries' => __('logbook.templates.entries'), 'columns' => __('logbook.templates.form.columns'), 'columnName' => __('logbook.templates.form.column_name'), 'columnNamePlaceholder' => __('logbook.templates.form.column_name_placeholder'), 'columnType' => __('logbook.templates.form.column_type'), 'selectColumnType' => __('logbook.templates.form.select_column_type'), 'columnRequired' => __('logbook.templates.form.column_required'), 'required' => __('logbook.templates.form.required_label'), 'optional' => __('logbook.templates.form.optional_label'), 'removeColumn' => __('logbook.templates.form.remove_column'), 'viewDetailTemplate' => __('logbook.templates.view_detail_template'), 'viewDetailInstitution' => __('logbook.templates.view_detail_institution'), 'viewDetailStatus' => __('logbook.templates.view_detail_status'), 'viewDetailDescription' => __('logbook.templates.form.description'), 'viewDetailColumns' => __('logbook.templates.view_detail_columns'), 'viewDetailColumnName' => __('logbook.templates.view_detail_column_name'), 'viewDetailColumnType' => __('logbook.templates.view_detail_column_type'), 'viewDetailColumnRequired' => __('logbook.templates.view_detail_column_required')]) !!};
 
 // Available Templates Manager Module
 const AvailableTemplatesManager = {

@@ -32,11 +32,13 @@ return [
         'search_placeholder' => 'Search by logbook name or creator...',
         'refresh' => 'Refresh',
         'table' => [
+            'name' => 'Logbook Name',
             'logbook' => 'Logbook',
             'creator' => 'Creator',
             'institution' => 'Institution',
             'entries_count' => 'Entry Count',
             'actions' => 'Actions',
+            'columns' => 'Columns',
         ],
         'loading' => 'Loading logbook data...',
         'no_data' => 'No logbook found',
@@ -105,6 +107,26 @@ return [
         'search_placeholder' => 'Search by template name...',
         'create_button' => 'Create Template',
         'refresh' => 'Refresh',
+        'form' => [
+            'name' => 'Template Name',
+            'name_placeholder' => 'Enter template name',
+            'institution' => 'Institution',
+            'select_institution' => 'Select Institution',
+            'description' => 'Description',
+            'description_placeholder' => 'Enter template description',
+            'activate_template' => 'Activate Template',
+            'columns' => 'Template Columns',
+            'add_column' => 'Add Column',
+            'columns_info' => 'Add required columns for this template',
+            'column_name' => 'Column Name',
+            'column_name_placeholder' => 'Enter column name',
+            'column_type' => 'Data Type',
+            'select_column_type' => 'Select Data Type',
+            'column_required' => 'Required',
+            'required_label' => 'Required',
+            'optional_label' => 'Optional',
+            'remove_column' => 'Remove Column',
+        ],
         'table' => [
             'template' => 'Template',
             'institution' => 'Institution',
@@ -161,4 +183,6 @@ return [
         'loading' => 'Loading templates...',
         'columns' => 'Columns',
     ],
+
+    
 ];

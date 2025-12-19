@@ -15,23 +15,6 @@ use Illuminate\Support\Facades\Validator;
 class AvailableTemplateController extends Controller
 {
     /**
-     * Check if user has a specific role.
-     *
-     * @param User $user
-     * @param string $roleName
-     * @return bool
-     */
-    private function userHasRole(User $user, string $roleName): bool
-    {
-        return DB::table('model_has_roles')
-            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-            ->where('model_has_roles.model_id', $user->id)
-            ->where('model_has_roles.model_type', User::class)
-            ->where('roles.name', $roleName)
-            ->exists();
-    }
-
-    /**
      * Display a listing of all available templates.
      * All authenticated users can view.
      *
@@ -174,8 +157,8 @@ class AvailableTemplateController extends Controller
             ], 422);
         }
 
-        // Check if user is Institution Admin, they can only create for their own institution
-        if ($this->userHasRole($user, 'Institution Admin')) {
+        // Check if user has institution-scoped permission, they can only create for their own institution
+        if ($user->can('templates.create.institution') && !$user->can('templates.create.any')) {
             if ($user->institution_id !== $request->institution_id) {
                 return response()->json([
                     'success' => false,
@@ -262,8 +245,8 @@ class AvailableTemplateController extends Controller
         try {
             $template = AvailableTemplate::findOrFail($id);
 
-            // Check if user is Institution Admin, they can only update their own institution's templates
-            if ($this->userHasRole($user, 'Institution Admin')) {
+            // Check if user has institution-scoped permission, they can only update their own institution's templates
+            if ($user->can('templates.update.institution') && !$user->can('templates.update.any')) {
                 if ($template->institution_id !== $user->institution_id) {
                     return response()->json([
                         'success' => false,
@@ -355,8 +338,8 @@ class AvailableTemplateController extends Controller
         try {
             $template = AvailableTemplate::with('institution:id,name')->findOrFail($id);
 
-            // Check if user is Institution Admin, they can only delete their own institution's templates
-            if ($this->userHasRole($user, 'Institution Admin')) {
+            // Check if user has institution-scoped permission, they can only delete their own institution's templates
+            if ($user->can('templates.delete.institution') && !$user->can('templates.delete.any')) {
                 if ($template->institution_id !== $user->institution_id) {
                     return response()->json([
                         'success' => false,
@@ -408,8 +391,8 @@ class AvailableTemplateController extends Controller
         try {
             $template = AvailableTemplate::with('institution:id,name')->findOrFail($id);
 
-            // Check if user is Institution Admin
-            if ($this->userHasRole($user, 'Institution Admin')) {
+            // Check if user has institution-scoped permission
+            if ($user->can('templates.toggle.institution') && !$user->can('templates.toggle.any')) {
                 if ($template->institution_id !== $user->institution_id) {
                     return response()->json([
                         'success' => false,

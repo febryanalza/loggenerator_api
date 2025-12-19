@@ -21,7 +21,7 @@ class AvailableDataTypeController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = AvailableDataType::query();
+            $query = AvailableDataType::select('id', 'name', 'description', 'is_active', 'created_at', 'updated_at');
 
             // Filter by active status if provided
             if ($request->has('is_active')) {
@@ -34,13 +34,36 @@ class AvailableDataTypeController extends Controller
                 $query->where('name', 'ilike', '%' . $request->search . '%');
             }
 
-            $dataTypes = $query->orderBy('name')->get();
+            // Add pagination for better performance
+            $perPage = $request->get('per_page', 50);
+            
+            // If requesting all data (for dropdown), use cache
+            if ($perPage === 'all' || $perPage == 0) {
+                $dataTypes = $query->orderBy('name')->get();
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data types retrieved successfully',
+                    'data' => $dataTypes,
+                    'count' => $dataTypes->count()
+                ]);
+            }
+            
+            // Use pagination for large datasets
+            $dataTypes = $query->orderBy('name')->paginate($perPage);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Data types retrieved successfully',
-                'data' => $dataTypes,
-                'count' => $dataTypes->count()
+                'data' => $dataTypes->items(),
+                'pagination' => [
+                    'current_page' => $dataTypes->currentPage(),
+                    'per_page' => $dataTypes->perPage(),
+                    'total' => $dataTypes->total(),
+                    'last_page' => $dataTypes->lastPage(),
+                    'has_more' => $dataTypes->hasMorePages()
+                ],
+                'count' => $dataTypes->total()
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -60,10 +83,13 @@ class AvailableDataTypeController extends Controller
     public function activeList()
     {
         try {
-            $dataTypes = AvailableDataType::active()
-                ->select('id', 'name', 'description')
-                ->orderBy('name')
-                ->get();
+            // Cache active data types for 1 hour (3600 seconds)
+            $dataTypes = \Illuminate\Support\Facades\Cache::remember('active_data_types', 3600, function () {
+                return AvailableDataType::active()
+                    ->select('id', 'name', 'description')
+                    ->orderBy('name')
+                    ->get();
+            });
 
             return response()->json([
                 'success' => true,
@@ -135,6 +161,9 @@ class AvailableDataTypeController extends Controller
                 'is_active' => $request->is_active ?? true,
             ]);
 
+            // Clear cache
+            \Illuminate\Support\Facades\Cache::forget('active_data_types');
+
             // Create audit log
             AuditLog::create([
                 'user_id' => Auth::id(),
@@ -198,7 +227,8 @@ class AvailableDataTypeController extends Controller
             }
 
             $dataType->save();
-
+            // Clear cache
+            \Illuminate\Support\Facades\Cache::forget('active_data_types');
             // Create audit log
             $changes = [];
             if ($request->has('name') && $originalData['name'] !== $dataType->name) {
@@ -250,6 +280,9 @@ class AvailableDataTypeController extends Controller
 
             $dataType->delete();
 
+            // Clear cache
+            \Illuminate\Support\Facades\Cache::forget('active_data_types');
+
             // Create audit log
             AuditLog::create([
                 'user_id' => Auth::id(),
@@ -286,6 +319,9 @@ class AvailableDataTypeController extends Controller
             $dataType = AvailableDataType::findOrFail($id);
             $dataType->is_active = !$dataType->is_active;
             $dataType->save();
+
+            // Clear cache
+            \Illuminate\Support\Facades\Cache::forget('active_data_types');
 
             // Create audit log
             AuditLog::create([

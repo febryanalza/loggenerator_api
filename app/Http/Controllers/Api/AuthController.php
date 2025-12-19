@@ -50,7 +50,8 @@ class AuthController extends Controller
         ]);
 
         // Ensure user has default 'User' role (fallback if trigger fails)
-        if (!$user->hasRole('User')) {
+        if (!$user->roles()->exists()) {
+            // Fallback: assign User role if not already assigned
             $user->assignRole('User');
         }
 
@@ -256,7 +257,8 @@ class AuthController extends Controller
                     ]);
 
                     // Ensure user has default 'User' role
-                    if (!$user->hasRole('User')) {
+                    if (!$user->roles()->exists()) {
+                        // Fallback: assign User role if not already assigned  
                         $user->assignRole('User');
                     }
                     
