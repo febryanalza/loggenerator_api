@@ -61,6 +61,9 @@ class SendFCMNotification implements ShouldQueue
                 $data['type'] = $event->type;
             }
 
+            // Sanitize data payload (FCM requires all values to be strings)
+            $data = $this->sanitizeDataPayload($data);
+
             // Send to single user or multiple users
             if (is_array($event->userId)) {
                 $result = $this->firebaseService->sendToUsers(
@@ -106,5 +109,38 @@ class SendFCMNotification implements ShouldQueue
             'type' => $event->type,
             'exception' => $exception->getMessage(),
         ]);
+    }
+
+    /**
+     * Sanitize data payload for FCM
+     * FCM requires all data values to be strings
+     * 
+     * @param array $data
+     * @return array
+     */
+    private function sanitizeDataPayload(array $data): array
+    {
+        $sanitized = [];
+
+        foreach ($data as $key => $value) {
+            if ($value === null) {
+                // Convert null to empty string
+                $sanitized[$key] = '';
+            } elseif (is_array($value) || is_object($value)) {
+                // Convert arrays/objects to JSON string
+                $sanitized[$key] = json_encode($value);
+            } elseif (is_bool($value)) {
+                // Convert boolean to string "true" or "false"
+                $sanitized[$key] = $value ? 'true' : 'false';
+            } elseif (is_numeric($value)) {
+                // Convert numbers to string
+                $sanitized[$key] = (string) $value;
+            } else {
+                // Keep strings as-is
+                $sanitized[$key] = (string) $value;
+            }
+        }
+
+        return $sanitized;
     }
 }

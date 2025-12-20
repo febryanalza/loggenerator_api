@@ -120,8 +120,8 @@ class NotificationController extends Controller
                 title: $request->title,
                 body: $request->message ?? '',
                 data: [
-                    'action_url' => $request->action_url,
-                    'action_text' => $request->action_text,
+                    'action_text' => $request->action_text ?? '',
+                    'action_url' => $request->action_url ?? '',
                 ],
                 type: 'admin_notification'
             ));
@@ -197,8 +197,8 @@ class NotificationController extends Controller
                 title: $request->title,
                 body: $request->message ?? '',
                 data: [
-                    'action_url' => $request->action_url,
-                    'action_text' => $request->action_text,
+                    'action_text' => $request->action_text ?? '',
+                    'action_url' => $request->action_url ?? '',
                 ],
                 type: 'broadcast_notification'
             ));

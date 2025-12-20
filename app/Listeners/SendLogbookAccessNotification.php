@@ -44,9 +44,11 @@ class SendLogbookAccessNotification // implements ShouldQueue
                 title: 'Hak Akses Template',
                 body: "Anda telah diberikan hak akses {$event->role} untuk template '{$event->logbookTemplate->title}' oleh {$event->grantedBy->name}",
                 data: [
-                    'template_id' => $event->logbookTemplate->id,
-                    'role' => $event->role,
-                    'granted_by_id' => $event->grantedBy->id,
+                    'template_id' => (string) $event->logbookTemplate->id,
+                    'template_title' => $event->logbookTemplate->title ?? '',
+                    'role' => $event->role ?? '',
+                    'granted_by_id' => (string) $event->grantedBy->id,
+                    'granted_by_name' => $event->grantedBy->name ?? '',
                 ],
                 type: 'logbook_access_granted'
             ));
