@@ -232,8 +232,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/bulk-reject', [LogbookVerificationController::class, 'bulkRejectData']);
     });
     
-    // Logbook Field routes - Template management
-    Route::middleware('permission:manage templates')->group(function () {
+    // Logbook Field routes - Template Owner or Admin can manage fields
+    Route::middleware('template.owner')->group(function () {
         Route::post('/fields', [LogbookFieldController::class, 'store']);
         Route::post('/fields/batch', [LogbookFieldController::class, 'storeBatch']);
         Route::put('/fields/{id}', [LogbookFieldController::class, 'update']);

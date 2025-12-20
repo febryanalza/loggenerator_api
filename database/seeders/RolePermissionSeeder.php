@@ -178,8 +178,11 @@ class RolePermissionSeeder extends Seeder
             'logbooks.update.own',
             'logbooks.delete.own',
             
-            // Templates (view only)
+            // Templates - User can create and manage their own templates
             'templates.view',
+            'templates.create',
+            'templates.update.own',
+            'templates.delete.own',
             
             // Data types (view only)
             'datatypes.view',

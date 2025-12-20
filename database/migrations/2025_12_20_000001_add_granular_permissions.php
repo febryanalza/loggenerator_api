@@ -57,7 +57,9 @@ return new class extends Migration
             ['name' => 'templates.view', 'guard_name' => 'web', 'description' => 'View templates'],
             ['name' => 'templates.create', 'guard_name' => 'web', 'description' => 'Create templates'],
             ['name' => 'templates.update', 'guard_name' => 'web', 'description' => 'Update templates'],
+            ['name' => 'templates.update.own', 'guard_name' => 'web', 'description' => 'Update own templates'],
             ['name' => 'templates.delete', 'guard_name' => 'web', 'description' => 'Delete templates'],
+            ['name' => 'templates.delete.own', 'guard_name' => 'web', 'description' => 'Delete own templates'],
             ['name' => 'templates.publish', 'guard_name' => 'web', 'description' => 'Publish templates'],
             
             // Data Types Management
