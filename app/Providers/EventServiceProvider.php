@@ -4,12 +4,14 @@ namespace App\Providers;
 
 use App\Events\LogbookAccessGranted;
 use App\Events\LogbookDataUpdated;
+use App\Events\NotificationSent;
 use App\Events\SupervisorAddedToTemplate;
 use App\Events\PermissionChanged;
 use App\Events\RoleAssigned;
 use App\Events\RoleRevoked;
 use App\Listeners\CreateVerificationRecordsForNewSupervisor;
 use App\Listeners\ResetVerificationsOnDataUpdate;
+use App\Listeners\SendFCMNotification;
 use App\Listeners\SendLogbookAccessNotification;
 use App\Listeners\LogPermissionChange;
 use App\Listeners\LogRoleAssignment;
@@ -41,6 +43,9 @@ class EventServiceProvider extends ServiceProvider
         ],
         RoleRevoked::class => [
             LogRoleRevocation::class,
+        ],
+        NotificationSent::class => [
+            SendFCMNotification::class,
         ],
     ];
 

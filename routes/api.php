@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\LogbookDataController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\FcmTokenController;
 use App\Http\Controllers\Api\FileController;
 use App\Http\Controllers\Api\UserLogbookAccessController;
 use App\Http\Controllers\Api\UserManagementController;
@@ -80,6 +81,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // Email Verification Routes (authenticated)
     Route::post('/email/verification-notification', [AuthController::class, 'resendVerification']);
     Route::get('/email/verification-status', [AuthController::class, 'verificationStatus']);
+    
+    // FCM Token Management
+    Route::prefix('fcm-tokens')->group(function () {
+        Route::get('/', [FcmTokenController::class, 'index']);
+        Route::post('/', [FcmTokenController::class, 'store']);
+        Route::put('/{token}', [FcmTokenController::class, 'update']);
+        Route::delete('/{token}', [FcmTokenController::class, 'destroy']);
+        Route::delete('/', [FcmTokenController::class, 'clean']);
+    });
     
     // Admin Auth & Dashboard APIs (Bearer Token required with expiration check)
     Route::prefix('admin')->middleware(['admin', 'token.expiration'])->group(function () {

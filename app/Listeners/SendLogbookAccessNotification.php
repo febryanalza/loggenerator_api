@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Events\LogbookAccessGranted;
+use App\Events\NotificationSent;
 use App\Models\AuditLog;
 use App\Notifications\LogbookAccessNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -36,6 +37,19 @@ class SendLogbookAccessNotification // implements ShouldQueue
             );
             
             $event->grantedUser->notify($notification);
+
+            // 🔥 Trigger FCM push notification
+            event(new NotificationSent(
+                userId: $event->grantedUser->id,
+                title: 'Hak Akses Template',
+                body: "Anda telah diberikan hak akses {$event->role} untuk template '{$event->logbookTemplate->title}' oleh {$event->grantedBy->name}",
+                data: [
+                    'template_id' => $event->logbookTemplate->id,
+                    'role' => $event->role,
+                    'granted_by_id' => $event->grantedBy->id,
+                ],
+                type: 'logbook_access_granted'
+            ));
 
             // Create audit log for the notification
             AuditLog::create([

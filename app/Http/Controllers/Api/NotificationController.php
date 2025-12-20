@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Events\NotificationSent;
 use App\Models\Notification;
 use App\Models\AuditLog;
 use App\Models\User;
@@ -113,6 +114,18 @@ class NotificationController extends Controller
             
             NotificationFacade::send($users, $notification);
             
+            // 🔥 Trigger FCM push notification
+            event(new NotificationSent(
+                userId: $request->user_ids,
+                title: $request->title,
+                body: $request->message ?? '',
+                data: [
+                    'action_url' => $request->action_url,
+                    'action_text' => $request->action_text,
+                ],
+                type: 'admin_notification'
+            ));
+            
             // Create audit log
             AuditLog::create([
                 'user_id' => Auth::id(),
@@ -177,6 +190,18 @@ class NotificationController extends Controller
             );
 
             NotificationFacade::send($users, $notification);
+
+            // 🔥 Trigger FCM push notification to all users
+            event(new NotificationSent(
+                userId: $users->pluck('id')->toArray(),
+                title: $request->title,
+                body: $request->message ?? '',
+                data: [
+                    'action_url' => $request->action_url,
+                    'action_text' => $request->action_text,
+                ],
+                type: 'broadcast_notification'
+            ));
 
             AuditLog::create([
                 'user_id' => Auth::id(),
