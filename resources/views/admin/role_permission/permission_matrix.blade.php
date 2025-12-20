@@ -146,25 +146,52 @@ const PermissionMatrixManager = {
             groupedPerms[cat].push(p);
         });
 
+        // Sort categories alphabetically
+        const sortedCategories = Object.keys(groupedPerms).sort();
+
         let html = `
             <table class="min-w-full border-collapse">
                 <thead>
-                    <tr class="bg-gray-100">
-                        <th class="sticky left-0 bg-gray-100 px-4 py-3 text-left text-sm font-semibold text-gray-700 border z-10">
+                    <!-- Category headers -->
+                    <tr class="bg-gradient-to-r from-purple-600 to-indigo-600">
+                        <th class="sticky left-0 bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-3 text-left text-sm font-bold text-white border border-purple-700 z-10">
                             Role / Permission
                         </th>
         `;
 
-        // Permission headers grouped by category
-        for (const [category, perms] of Object.entries(groupedPerms)) {
+        // Category headers with colspan
+        sortedCategories.forEach(category => {
+            const perms = groupedPerms[category];
+            const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
+            html += `
+                <th colspan="${perms.length}" class="px-2 py-3 border border-purple-700 text-center text-sm font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600">
+                    <i class="fas fa-folder mr-2"></i>${categoryName}
+                </th>
+            `;
+        });
+
+        html += `</tr>`;
+
+        // Permission sub-headers
+        html += `<tr class="bg-gray-100">
+                    <th class="sticky left-0 bg-gray-100 px-4 py-2 text-left text-xs font-semibold text-gray-700 border z-10">
+                        <!-- Empty cell for role column -->
+                    </th>
+        `;
+
+        sortedCategories.forEach(category => {
+            const perms = groupedPerms[category];
             perms.forEach(perm => {
+                const scope = perm.scope || perm.name.split('.').pop();
                 html += `
                     <th class="matrix-cell px-2 py-2 border bg-gray-50" title="${perm.name}">
-                        <div class="matrix-header text-gray-600">${this.formatPermName(perm.name)}</div>
+                        <div class="matrix-header text-xs text-gray-700 font-medium transform -rotate-45 origin-left whitespace-nowrap" style="writing-mode: vertical-rl; text-orientation: mixed;">
+                            ${scope}
+                        </div>
                     </th>
                 `;
             });
-        }
+        });
 
         html += `</tr></thead><tbody>`;
 
@@ -181,8 +208,9 @@ const PermissionMatrixManager = {
                     </td>
             `;
 
-            // Permission cells
-            for (const [category, perms] of Object.entries(groupedPerms)) {
+            // Permission cells grouped by category
+            sortedCategories.forEach(category => {
+                const perms = groupedPerms[category];
                 perms.forEach(perm => {
                     const permData = row.permissions.find(p => p.permission_id === perm.id);
                     const hasPermission = permData ? permData.has_permission : false;
@@ -191,13 +219,13 @@ const PermissionMatrixManager = {
                         <td class="matrix-cell px-2 py-2 border text-center">
                             <button onclick="PermissionMatrixManager.togglePermission(${row.role_id}, ${perm.id}, ${hasPermission})"
                                 class="w-6 h-6 rounded ${hasPermission ? 'bg-green-500' : 'bg-gray-200'} flex items-center justify-center mx-auto hover:opacity-80 transition"
-                                title="${hasPermission ? 'Click to revoke' : 'Click to grant'}">
+                                title="${perm.name}\n${hasPermission ? 'Click to revoke' : 'Click to grant'}">
                                 <i class="fas ${hasPermission ? 'fa-check text-white' : 'fa-times text-gray-400'} text-xs"></i>
                             </button>
                         </td>
                     `;
                 });
-            }
+            });
 
             html += `</tr>`;
         });
