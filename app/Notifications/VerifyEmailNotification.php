@@ -59,7 +59,8 @@ class VerifyEmailNotification extends Notification
      */
     protected function verificationUrl($notifiable)
     {
-        return URL::temporarySignedRoute(
+        // Generate backend verification URL
+        $backendUrl = URL::temporarySignedRoute(
             'verification.verify',
             Carbon::now()->addMinutes(60),
             [
@@ -67,6 +68,11 @@ class VerifyEmailNotification extends Notification
                 'hash' => sha1($notifiable->getEmailForVerification()),
             ]
         );
+        
+        // Return URL that will be opened in browser
+        // This will verify the email and show success message
+        // The Flutter app will detect verification through polling
+        return $backendUrl;
     }
 
     /**

@@ -412,7 +412,7 @@ class AuthController extends Controller
      * Verify email address
      *
      * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\Response
      */
     public function verifyEmail(Request $request)
     {
@@ -420,20 +420,18 @@ class AuthController extends Controller
 
         // Verify hash matches
         if (!hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid verification link'
+            // Return HTML response for browser
+            return response()->view('emails.verification-failed', [
+                'message' => 'Invalid verification link. Please request a new verification email.'
             ], 400);
         }
 
         // Check if already verified
         if ($user->hasVerifiedEmail()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Email already verified',
-                'data' => [
-                    'verified_at' => $user->email_verified_at
-                ]
+            // Return HTML response for browser
+            return response()->view('emails.verification-success', [
+                'message' => 'Your email has already been verified!',
+                'userName' => $user->name
             ]);
         }
 
@@ -448,18 +446,16 @@ class AuthController extends Controller
                 'user_agent' => $request->userAgent()
             ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Email verified successfully',
-                'data' => [
-                    'verified_at' => $user->email_verified_at
-                ]
+            // Return HTML response for browser
+            return response()->view('emails.verification-success', [
+                'message' => 'Email verified successfully! You can now close this window and return to the app.',
+                'userName' => $user->name
             ]);
         }
 
-        return response()->json([
-            'success' => false,
-            'message' => 'Email verification failed'
+        // Return HTML response for error
+        return response()->view('emails.verification-failed', [
+            'message' => 'Email verification failed. Please try again.'
         ], 500);
     }
 
