@@ -260,48 +260,8 @@
     </div>
 </div>
 
-<!-- Change Role Modal -->
-<div id="roleModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-lg max-w-md w-full">
-        <div class="p-6 border-b border-gray-200">
-            <h3 class="text-xl font-semibold text-gray-800">Change User Role</h3>
-        </div>
-        
-        <form id="roleForm" class="p-6">
-            <input type="hidden" id="roleUserId">
-            
-            <div class="mb-4">
-                <p class="text-sm text-gray-600 mb-2">User: <span id="roleUserName" class="font-semibold"></span></p>
-                <p class="text-sm text-gray-600 mb-4">Current Role: <span id="roleUserCurrentRole" class="font-semibold"></span></p>
-                
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    New Role <span class="text-red-500">*</span>
-                </label>
-                <select id="newRole" 
-                        required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                    <option value="">Select New Role</option>
-                </select>
-            </div>
-            
-            <div id="roleFormError" class="hidden mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p class="text-sm text-red-600"></p>
-            </div>
-            
-            <div class="flex justify-end gap-3">
-                <button type="button" 
-                        onclick="closeRoleModal()"
-                        class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
-                    Cancel
-                </button>
-                <button type="submit" 
-                        class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                    Update Role
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
+@include('admin.user-management.components.change-role-modal')
+@include('admin.user-management.components.edit-user-modal')
 
 <!-- Delete User Confirmation Modal -->
 <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center p-4 hidden">
@@ -547,7 +507,7 @@ async function loadInstitutions(forceRefresh = false) {
         // SIMPAN KE CACHE
         setCache(INSTITUTIONS_CACHE_KEY, institutions);
         
-        populateInstitutionDropdown();
+        populateAllInstitutionDropdowns();
         
     } catch (error) {
         console.error('Load institutions error:', error);
@@ -709,15 +669,40 @@ function escapeHtml(text) {
         .replace(/'/g, '&#039;');
 }
 
-function populateInstitutionDropdown() {
-    const select = document.getElementById('userInstitution');
-    if (select) {
-        select.innerHTML = '<option value="">Select Institution</option>';
-        institutions.forEach(inst => {
-            console.log('Adding institution:', inst.id, '-', inst.name);
-            select.innerHTML += `<option value="${inst.id}">${inst.name}</option>`;
-        });
-        console.log('Total institutions in dropdown:', institutions.length);
+function populateInstitutionDropdown(selectId = 'userInstitution', selectedValue = '') {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    const currentValue = selectedValue || select.value;
+    select.innerHTML = '<option value="">Pilih Institusi</option>';
+    institutions.forEach(inst => {
+        select.innerHTML += `<option value="${inst.id}">${escapeHtml(inst.name)}</option>`;
+    });
+
+    if (currentValue) {
+        select.value = currentValue;
+    }
+
+    console.log(`Total institutions in dropdown (${selectId}):`, institutions.length);
+}
+
+function populateAllInstitutionDropdowns() {
+    ['userInstitution', 'editUserInstitution', 'roleInstitutionSelect']
+        .forEach(selectId => populateInstitutionDropdown(selectId));
+}
+
+function handleRoleSelectionChange(selectedRole) {
+    const group = document.getElementById('roleInstitutionGroup');
+    const select = document.getElementById('roleInstitutionSelect');
+    if (!group || !select) return;
+
+    if (selectedRole === 'Institution Admin') {
+        group.classList.remove('hidden');
+        select.required = true;
+    } else {
+        group.classList.add('hidden');
+        select.required = false;
+        select.value = '';
     }
 }
 
@@ -795,8 +780,8 @@ function renderUsersTable() {
         const institution = user.institution ? user.institution.name : '-';
         const lastLogin = user.last_login ? new Date(user.last_login).toLocaleString('id-ID') : 'Never';
         const statusBadge = user.status === 'active' 
-            ? '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Active</span>'
-            : '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Inactive</span>';
+            ? `<button onclick="toggleUserStatus('${user.id}')" class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 hover:bg-green-200 transition">Active</button>`
+            : `<button onclick="toggleUserStatus('${user.id}')" class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 hover:bg-red-200 transition">Inactive</button>`;
         
         return `
             <tr class="hover:bg-gray-50">
@@ -821,6 +806,11 @@ function renderUsersTable() {
                 <td class="px-6 py-4 whitespace-nowrap">${statusBadge}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${lastLogin}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button onclick="openEditUserModal('${user.id}')" 
+                            class="text-green-600 hover:text-green-900 mr-3" 
+                            title="Edit User">
+                        <i class="fas fa-edit"></i>
+                    </button>
                     <button onclick="openChangeRoleModal('${user.id}')" 
                             class="text-indigo-600 hover:text-indigo-900 mr-3" 
                             title="Change Role">
@@ -1046,6 +1036,7 @@ function openChangeRoleModal(userId) {
     const user = allUsers.find(u => u.id === userId);
     if (!user) return;
     populateRoleDropdowns();
+    populateAllInstitutionDropdowns();
     
     let roleText = '-';
     if (user.roles) {
@@ -1061,6 +1052,14 @@ function openChangeRoleModal(userId) {
     document.getElementById('roleUserCurrentRole').textContent = roleText;
     document.getElementById('newRole').value = '';
     document.getElementById('roleFormError').classList.add('hidden');
+
+    // Preselect institution if user already has one
+    const roleInstitutionSelect = document.getElementById('roleInstitutionSelect');
+    if (roleInstitutionSelect) {
+        roleInstitutionSelect.value = user.institution?.id || '';
+    }
+
+    handleRoleSelectionChange('');
     
     const modal = document.getElementById('roleModal');
     modal.classList.remove('hidden');
@@ -1080,6 +1079,7 @@ document.getElementById('roleForm').addEventListener('submit', async function(e)
     
     const userId = document.getElementById('roleUserId').value;
     const newRole = document.getElementById('newRole').value;
+    const institutionId = document.getElementById('roleInstitutionSelect')?.value;
     
     try {
         const token = localStorage.getItem('admin_token');
@@ -1090,7 +1090,10 @@ document.getElementById('roleForm').addEventListener('submit', async function(e)
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({ role: newRole })
+            body: JSON.stringify({ 
+                role: newRole,
+                institution_id: newRole === 'Institution Admin' ? institutionId : null
+            })
         });
         
         const data = await response.json();
@@ -1113,6 +1116,113 @@ document.getElementById('roleForm').addEventListener('submit', async function(e)
         errorDiv.classList.remove('hidden');
     }
 });
+
+// Open edit user modal
+function openEditUserModal(userId) {
+    const user = allUsers.find(u => u.id === userId);
+    if (!user) return;
+
+    populateAllInstitutionDropdowns();
+
+    document.getElementById('editUserId').value = userId;
+    document.getElementById('editUserName').value = user.name || '';
+    document.getElementById('editUserPhone').value = user.phone_number || '';
+    document.getElementById('editUserStatus').value = user.status || 'active';
+    document.getElementById('editUserInstitution').value = user.institution?.id || '';
+    document.getElementById('editUserFormError').classList.add('hidden');
+
+    const modal = document.getElementById('editUserModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeEditUserModal() {
+    const modal = document.getElementById('editUserModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.getElementById('editUserForm').reset();
+}
+
+const editUserForm = document.getElementById('editUserForm');
+if (editUserForm) {
+    editUserForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const submitBtn = document.getElementById('editUserSubmitBtn');
+        const submitText = document.getElementById('editUserSubmitText');
+        const originalText = submitText.textContent;
+
+        const userId = document.getElementById('editUserId').value;
+        const payload = {
+            name: document.getElementById('editUserName').value.trim(),
+            phone_number: document.getElementById('editUserPhone').value.trim() || null,
+            status: document.getElementById('editUserStatus').value,
+            institution_id: document.getElementById('editUserInstitution').value || null,
+        };
+
+        submitBtn.disabled = true;
+        submitText.textContent = 'Menyimpan...';
+
+        try {
+            const token = localStorage.getItem('admin_token');
+            const response = await fetch(`/api/admin/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Gagal memperbarui user');
+            }
+
+            showToast('User berhasil diperbarui', 'success');
+            closeEditUserModal();
+            clearCacheData(USERS_CACHE_KEY);
+            await loadUsers(true);
+
+        } catch (error) {
+            console.error('Edit user error:', error);
+            const errorDiv = document.getElementById('editUserFormError');
+            errorDiv.querySelector('p').textContent = error.message;
+            errorDiv.classList.remove('hidden');
+        } finally {
+            submitBtn.disabled = false;
+            submitText.textContent = originalText;
+        }
+    });
+}
+
+async function toggleUserStatus(userId) {
+    try {
+        const token = localStorage.getItem('admin_token');
+        const response = await fetch(`/api/admin/users/${userId}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Gagal mengubah status user');
+        }
+
+        showToast('Status user diperbarui', 'success');
+        clearCacheData(USERS_CACHE_KEY);
+        await loadUsers(true);
+
+    } catch (error) {
+        console.error('Toggle status error:', error);
+        showToast(error.message || 'Gagal mengubah status user', 'error');
+    }
+}
 
 // View user details
 function viewUserDetails(userId) {

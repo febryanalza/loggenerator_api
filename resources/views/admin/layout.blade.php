@@ -221,9 +221,9 @@
                     
                     <!-- Notifications -->
                     <div class="relative">
-                        <button class="text-gray-500 hover:text-gray-700 relative">
+                        <button id="notificationButton" class="text-gray-500 hover:text-gray-700 relative" title="Notifications">
                             <i class="fas fa-bell text-xl"></i>
-                            <span class="notification-badge absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
+                            <span id="notificationBadge" class="notification-badge absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
                         </button>
                     </div>
                     
@@ -332,6 +332,47 @@
                 closeSidebarFunc();
             }
         });
+
+        // Notifications badge loader
+        const notificationButton = document.getElementById('notificationButton');
+        const notificationBadge = document.getElementById('notificationBadge');
+
+        function updateNotificationBadge(count) {
+            if (!notificationBadge) return;
+            if (count > 0) {
+                notificationBadge.textContent = count > 99 ? '99+' : count;
+                notificationBadge.classList.remove('hidden');
+            } else {
+                notificationBadge.classList.add('hidden');
+            }
+        }
+
+        async function loadNotificationStats() {
+            try {
+                const token = localStorage.getItem('admin_token');
+                if (!token) return;
+                const res = await fetch('/api/notifications/stats', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                const unread = data?.data?.unread ?? 0;
+                updateNotificationBadge(unread);
+            } catch (err) {
+                console.warn('Failed to load notification stats', err);
+            }
+        }
+
+        notificationButton?.addEventListener('click', () => {
+            window.location.href = "{{ route('admin.notifications') }}";
+        });
+
+        // Initial badge load and interval refresh
+        loadNotificationStats();
+        setInterval(loadNotificationStats, 60000);
     </script>
 
     @stack('scripts')

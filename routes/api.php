@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\UserLogbookAccessController;
 use App\Http\Controllers\Api\UserManagementController;
 use App\Http\Controllers\Api\LogbookVerificationController;
 use App\Http\Controllers\Api\InstitutionController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\WebsiteController;
 use App\Http\Controllers\Web\DashboardController;
 use Illuminate\Http\Request;
@@ -370,6 +371,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:notifications.send')->group(function () {
         Route::post('/notifications/send', [NotificationController::class, 'send']);
         Route::post('/notifications/send-to-role', [NotificationController::class, 'sendToRole']);
+        Route::post('/notifications/send-to-template', [NotificationController::class, 'sendToTemplate']);
+    });
+
+    Route::middleware('permission:notifications.send.all')->group(function () {
+        Route::post('/notifications/send-all', [NotificationController::class, 'sendToAll']);
     });
     
     // File upload routes
@@ -393,6 +399,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::middleware('throttle.sensitive:30,1')->group(function () {
             Route::post('/admin/users', [UserManagementController::class, 'createUser']);
             Route::put('/admin/users/{userId}/role', [UserManagementController::class, 'updateUserRole']);
+            Route::put('/admin/users/{userId}', [ProfileController::class, 'adminUpdate']);
+            Route::patch('/admin/users/{userId}/status', [UserManagementController::class, 'toggleStatus']);
             Route::delete('/admin/users/{userId}', [UserManagementController::class, 'deleteUser']);
         });
         

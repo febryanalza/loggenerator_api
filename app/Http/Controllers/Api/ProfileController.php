@@ -195,6 +195,142 @@ class ProfileController extends Controller
     }
 
     /**
+     * Admin update for any user (except email/password changes)
+     */
+    public function adminUpdate(Request $request, string $userId)
+    {
+        $currentUser = $request->user();
+
+        if (!$currentUser || !$currentUser->can('users.manage')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You need users.manage permission.'
+            ], 403);
+        }
+
+        /** @var User $user */
+        $user = User::findOrFail($userId);
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'sometimes|string|max:100',
+            'phone_number' => 'sometimes|nullable|string|max:20',
+            'avatar_url' => 'sometimes|string|nullable',
+            'status' => 'sometimes|in:active,inactive',
+            'institution_id' => 'sometimes|nullable|exists:institutions,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation Error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $changes = [];
+            $oldData = [
+                'name' => $user->name,
+                'phone_number' => $user->phone_number,
+                'avatar_url' => $user->avatar_url,
+                'status' => $user->status,
+                'institution_id' => $user->institution_id,
+            ];
+
+            if ($request->has('name') && $request->name !== $user->name) {
+                $user->name = $request->name;
+                $changes[] = 'name';
+            }
+
+            if ($request->has('phone_number') && $request->phone_number !== $user->phone_number) {
+                $user->phone_number = $request->phone_number;
+                $changes[] = 'phone_number';
+            }
+
+            if ($request->has('avatar_url')) {
+                $newAvatarPath = $this->handleAvatarUpload($request->avatar_url, $user);
+                if ($newAvatarPath !== $user->avatar_url) {
+                    if ($user->avatar_url && str_contains($user->avatar_url, 'storage/avatars/')) {
+                        Storage::disk('avatar')->delete(basename($user->avatar_url));
+                    }
+
+                    $user->avatar_url = $newAvatarPath;
+                    $changes[] = 'avatar_url';
+                }
+            }
+
+            if ($request->has('status') && $request->status !== $user->status) {
+                $user->status = $request->status;
+                $changes[] = 'status';
+            }
+
+            if ($request->has('institution_id') && $request->institution_id !== $user->institution_id) {
+                $user->institution_id = $request->institution_id;
+                $changes[] = 'institution_id';
+            }
+
+            if (!empty($changes)) {
+                $user->save();
+
+                $newData = [
+                    'name' => $user->name,
+                    'phone_number' => $user->phone_number,
+                    'avatar_url' => $user->avatar_url,
+                    'status' => $user->status,
+                    'institution_id' => $user->institution_id,
+                ];
+
+                AuditLog::create([
+                    'user_id' => $currentUser->id,
+                    'action' => 'ADMIN_UPDATE_USER_PROFILE',
+                    'description' => "Updated profile for {$user->name}: " . implode(', ', $changes),
+                    'old_values' => array_intersect_key($oldData, array_flip($changes)),
+                    'new_values' => array_intersect_key($newData, array_flip($changes)),
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent()
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'User profile updated successfully',
+                    'updated_fields' => $changes,
+                    'data' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'phone_number' => $user->phone_number,
+                        'avatar_url' => $user->avatar_url,
+                        'status' => $user->status,
+                        'institution_id' => $user->institution_id,
+                        'updated_at' => $user->updated_at,
+                    ]
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'No changes detected',
+                'data' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone_number' => $user->phone_number,
+                    'avatar_url' => $user->avatar_url,
+                    'status' => $user->status,
+                    'institution_id' => $user->institution_id,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update user profile',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Handle avatar upload (base64 or URL)
      *
      * @param string $avatarData

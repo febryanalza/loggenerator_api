@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Models\LogbookTemplate;
 use App\Notifications\GeneralNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,8 +25,12 @@ class NotificationController extends Controller
         try {
             $user = $request->user();
             $perPage = $request->get('per_page', 15);
-            
-            $notifications = $user->notifications()
+
+            $viewAll = $request->get('scope') === 'all' && $user->can('notifications.view');
+
+            $query = $viewAll ? Notification::query() : $user->notifications();
+
+            $notifications = $query
                 ->when($request->get('unread_only'), function($query) {
                     return $query->unread();
                 })
@@ -34,6 +39,10 @@ class NotificationController extends Controller
                 })
                 ->orderBy('created_at', 'desc')
                 ->paginate($perPage);
+
+            $unreadCount = $viewAll
+                ? Notification::whereNull('read_at')->count()
+                : $user->unreadNotifications()->count();
 
             return response()->json([
                 'success' => true,
@@ -45,7 +54,7 @@ class NotificationController extends Controller
                         'last_page' => $notifications->lastPage(),
                         'per_page' => $notifications->perPage(),
                         'total' => $notifications->total(),
-                        'unread_count' => $user->unreadNotifications()->count()
+                        'unread_count' => $unreadCount
                     ]
                 ]
             ], 200);
@@ -129,6 +138,70 @@ class NotificationController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Send notification to all users in the system.
+     */
+    public function sendToAll(Request $request)
+    {
+        $validator = validator($request->all(), [
+            'title' => 'required|string|max:255',
+            'message' => 'nullable|string',
+            'action_text' => 'nullable|string|max:100',
+            'action_url' => 'nullable|url',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation Error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        if (!$request->user()->can('notifications.send.all')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to send notifications to all users'
+            ], 403);
+        }
+
+        try {
+            $users = User::all();
+
+            $notification = new GeneralNotification(
+                $request->title,
+                $request->message,
+                $request->action_text,
+                $request->action_url
+            );
+
+            NotificationFacade::send($users, $notification);
+
+            AuditLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'SEND_NOTIFICATIONS_ALL',
+                'description' => 'Sent notification "' . $request->title . '" to all users',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notifications sent to all users successfully',
+                'data' => [
+                    'notification_count' => $users->count(),
+                    'title' => $request->title
+                ]
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send notifications to all users',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
     
     /**
      * Send notification to all users with a specific role.
@@ -200,6 +273,76 @@ class NotificationController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to send notifications',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Send notification to all users who have access to a specific logbook template.
+     */
+    public function sendToTemplate(Request $request)
+    {
+        $validator = validator($request->all(), [
+            'template_id' => 'required|exists:logbook_template,id',
+            'title' => 'required|string|max:255',
+            'message' => 'nullable|string',
+            'action_text' => 'nullable|string|max:100',
+            'action_url' => 'nullable|url',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation Error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        if (!$request->user()->can('notifications.send')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to send notifications to template members'
+            ], 403);
+        }
+
+        try {
+            $template = LogbookTemplate::findOrFail($request->template_id);
+
+            $users = User::whereHas('logbookAccess', function($query) use ($request) {
+                $query->where('logbook_template_id', $request->template_id);
+            })->get();
+
+            $notification = new GeneralNotification(
+                $request->title,
+                $request->message,
+                $request->action_text,
+                $request->action_url
+            );
+
+            NotificationFacade::send($users, $notification);
+
+            AuditLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'SEND_NOTIFICATIONS_TEMPLATE',
+                'description' => 'Sent notification "' . $request->title . '" to template: ' . $template->name,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notifications sent to ' . $users->count() . ' users for template ' . $template->name,
+                'data' => [
+                    'notification_count' => $users->count(),
+                    'template' => $template->only(['id', 'name']),
+                    'title' => $request->title
+                ]
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send notifications to template members',
                 'error' => $e->getMessage()
             ], 500);
         }

@@ -52,6 +52,7 @@ Route::prefix('admin')->group(function () {
     Route::get('/logbook-management', function() { return view('admin.logbook-management'); })->name('admin.logbook-management');
     Route::get('/content-management', function() { return view('admin.content-management'); })->name('admin.content-management');
     Route::get('/reports-analytics', function() { return view('admin.reports-analytics'); })->name('admin.reports-analytics');
+    Route::get('/notifications', function() { return view('admin.notifications'); })->name('admin.notifications');
     Route::get('/logbook/{id}', function() { return view('admin.logbook-detail'); })->name('admin.logbook-detail');
 });
 

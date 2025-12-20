@@ -302,7 +302,8 @@ class UserManagementController extends Controller
         }
 
         $request->validate([
-            'role' => 'required|string|in:Admin,Manager,User'
+            'role' => 'required|string|in:Admin,Manager,User,Institution Admin',
+            'institution_id' => 'required_if:role,Institution Admin|nullable|exists:institutions,id'
         ]);
 
         try {
@@ -329,6 +330,15 @@ class UserManagementController extends Controller
 
             // Remove all current roles and assign new one
             $user->syncRoles([$newRoleName]);
+
+            // Update institution when assigning Institution Admin role
+            if ($newRoleName === 'Institution Admin') {
+                $user->institution_id = $request->institution_id;
+            } else {
+                // Clear institution for other roles to avoid stale linkage
+                $user->institution_id = null;
+            }
+            $user->save();
 
             // Fire events for audit logging
             foreach ($oldRoles as $oldRole) {
@@ -366,7 +376,8 @@ class UserManagementController extends Controller
                         'name' => $user->name,
                         'email' => $user->email,
                         'old_roles' => $oldRoles,
-                        'new_role' => $newRoleName
+                        'new_role' => $newRoleName,
+                        'institution_id' => $user->institution_id
                     ]
                 ]
             ]);
@@ -738,6 +749,79 @@ class UserManagementController extends Controller
                 'success' => false,
                 'message' => 'Failed to add member. Please try again.',
                 'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Toggle user status between active and inactive.
+     * Accessible by Admin and Super Admin (users.manage permission).
+     */
+    public function toggleStatus(Request $request, string $userId)
+    {
+        $currentUser = $request->user();
+
+        if (!$currentUser->can('users.manage')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You need users.manage permission.'
+            ], 403);
+        }
+
+        try {
+            $user = User::findOrFail($userId);
+
+            // Prevent users from toggling their own status to avoid lockout
+            if ($user->id === $currentUser->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You cannot change your own status.'
+                ], 422);
+            }
+
+            $newStatus = $user->status === 'active' ? 'inactive' : 'active';
+            $oldStatus = $user->status;
+            $user->status = $newStatus;
+            $user->save();
+
+            // Audit log
+            \App\Models\AuditLog::create([
+                'user_id' => $currentUser->id,
+                'action' => 'TOGGLE_USER_STATUS',
+                'description' => "Changed status for {$user->name} from {$oldStatus} to {$newStatus}",
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'details' => json_encode([
+                    'target_user_id' => $user->id,
+                    'old_status' => $oldStatus,
+                    'new_status' => $newStatus
+                ])
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User status updated successfully',
+                'data' => [
+                    'user_id' => $user->id,
+                    'status' => $newStatus,
+                    'is_active' => $newStatus === 'active'
+                ]
+            ]);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not found.'
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Failed to toggle user status: ' . $e->getMessage(), [
+                'admin_user_id' => $currentUser->id,
+                'target_user_id' => $userId,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update user status.'
             ], 500);
         }
     }

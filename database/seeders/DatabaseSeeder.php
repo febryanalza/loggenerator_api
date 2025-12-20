@@ -32,6 +32,10 @@ class DatabaseSeeder extends Seeder
 
             // Logbook Data Type Seeder
             AvailableDataTypeSeeder::class,
+
+            // Logbook Templates & Fields
+            LogbookTemplateSeeder::class,
+            LogbookFieldSeeder::class,
             
             // Sample data (optional - comment out for production)
             UserSeeder::class, // Creates sample users for each role
