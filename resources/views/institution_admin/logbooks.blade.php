@@ -33,6 +33,13 @@
             <i class="fas fa-layer-group mr-2"></i>
             Template Available
         </button>
+        <button onclick="LogbookManagement.switchTab('required-data')" 
+            class="tab-button flex-1 px-6 py-4 text-center font-medium transition-all duration-200 border-b-2 border-transparent hover:bg-gray-50"
+            data-tab="required-data"
+            id="tab-btn-required-data">
+            <i class="fas fa-list mr-2"></i>
+            Required Data Participant
+        </button>
     </div>
 </div>
 
@@ -47,6 +54,11 @@
     <div id="tab-templates" class="tab-content hidden">
         @include('institution_admin.logbook_management.templates')
     </div>
+    
+    <!-- Tab: Required Data -->
+    <div id="tab-required-data" class="tab-content hidden">
+        @include('institution_admin.logbook_management.required_data')
+    </div>
 </div>
 @endsection
 
@@ -57,7 +69,8 @@ const LogbookManagement = {
     currentTab: 'logbooks',
     initialized: {
         logbooks: false,
-        templates: false
+        templates: false,
+        'required-data': false
     },
     userData: null,
     institutionId: null,
@@ -138,6 +151,12 @@ const LogbookManagement = {
                 if (typeof TemplatesManager !== 'undefined') {
                     TemplatesManager.init(this.institutionId);
                     this.initialized.templates = true;
+                }
+                break;
+            case 'required-data':
+                if (typeof RequiredDataManager !== 'undefined') {
+                    RequiredDataManager.init(this.institutionId);
+                    this.initialized['required-data'] = true;
                 }
                 break;
         }

@@ -99,6 +99,13 @@ class RolePermissionSeeder extends Seeder
             'notifications.send',
             'notifications.send.bulk',
             'notifications.send.to-role',
+            
+            // Participants
+            'participants.view',
+            'participants.create',
+            'participants.update',
+            'participants.delete',
+            'participants.manage',
         ];
         $institutionAdmin->givePermissionTo($institutionAdminPermissions);
         

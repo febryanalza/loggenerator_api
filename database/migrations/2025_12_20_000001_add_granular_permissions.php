@@ -95,6 +95,20 @@ return new class extends Migration
             ['name' => 'notifications.send.all', 'guard_name' => 'web', 'description' => 'Send to all users'],
             ['name' => 'notifications.send.to-role', 'guard_name' => 'web', 'description' => 'Send notifications to specific role groups'],
             
+            // Participants Management
+            ['name' => 'participants.view', 'guard_name' => 'web', 'description' => 'View participants'],
+            ['name' => 'participants.create', 'guard_name' => 'web', 'description' => 'Create participants'],
+            ['name' => 'participants.update', 'guard_name' => 'web', 'description' => 'Update participants'],
+            ['name' => 'participants.delete', 'guard_name' => 'web', 'description' => 'Delete participants'],
+            ['name' => 'participants.manage', 'guard_name' => 'web', 'description' => 'Full participant management access'],
+            
+            // Required Data Participants Management
+            ['name' => 'required-data-participants.view', 'guard_name' => 'web', 'description' => 'View required data participants'],
+            ['name' => 'required-data-participants.create', 'guard_name' => 'web', 'description' => 'Create required data participants'],
+            ['name' => 'required-data-participants.update', 'guard_name' => 'web', 'description' => 'Update required data participants'],
+            ['name' => 'required-data-participants.delete', 'guard_name' => 'web', 'description' => 'Delete required data participants'],
+            ['name' => 'required-data-participants.manage', 'guard_name' => 'web', 'description' => 'Full required data participants management access'],
+            
             // Additional Route-Specific Permissions
             ['name' => 'institutions.manage', 'guard_name' => 'web', 'description' => 'Full institution management access'],
             ['name' => 'institution.manage-own', 'guard_name' => 'web', 'description' => 'Manage own institution'],
@@ -172,6 +186,9 @@ return new class extends Migration
                 'roles.view', 'permissions.view', 'roles.manage', 'roles.assign-permissions',
                 'notifications.view', 'notifications.create', 'notifications.send', 'notifications.send.bulk',
                 'notifications.send.to-role',
+                'participants.view', 'participants.create', 'participants.update', 'participants.delete', 'participants.manage',
+                'required-data-participants.view', 'required-data-participants.create', 'required-data-participants.update',
+                'required-data-participants.delete', 'required-data-participants.manage',
             ])->pluck('name');
             $admin->syncPermissions($adminPermissions);
         }
@@ -213,6 +230,8 @@ return new class extends Migration
                 'reports.view.basic',
                 'audit.view.own',
                 'notifications.view',
+                'required-data-participants.view', 'required-data-participants.create', 'required-data-participants.update',
+                'required-data-participants.delete', 'required-data-participants.manage',
             ])->pluck('name');
             $institutionAdmin->syncPermissions($institutionAdminPermissions);
         }

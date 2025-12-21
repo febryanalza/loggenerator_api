@@ -96,7 +96,7 @@
                         type="email" 
                         id="email" 
                         name="email"
-                        value="superadmin@loggenerator.com"
+                        value="superadmin@example.com"
                         required
                         class="w-full px-4 py-3 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-indigo-200 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent transition duration-200"
                         placeholder="{{ __('auth.login.email.placeholder') }}"

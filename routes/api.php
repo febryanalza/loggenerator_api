@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\LogbookVerificationController;
 use App\Http\Controllers\Api\InstitutionController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\WebsiteController;
+use App\Http\Controllers\Api\LogbookParticipantController;
+use App\Http\Controllers\Api\RequiredDataParticipantController;
 use App\Http\Controllers\Web\DashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -265,6 +267,59 @@ Route::middleware('auth:sanctum')->group(function () {
     // Logbook Data routes - Deletion (requires Editor+ role)
     Route::middleware('logbook.access:Editor,Supervisor,Owner')->group(function () {
         Route::delete('/logbook-entries/{id}', [LogbookDataController::class, 'destroy']);
+    });
+    
+    // ===============================================
+    // Logbook Participants routes
+    // ===============================================
+    // Admin, Manager, Institution Admin - Full access with permission check
+    Route::middleware('permission:participants.manage')->group(function () {
+        Route::get('/participants', [LogbookParticipantController::class, 'index']);
+        Route::get('/participants/stats', [LogbookParticipantController::class, 'getStats']);
+        Route::get('/participants/list', [LogbookParticipantController::class, 'getParticipantsList']);
+        Route::post('/participants', [LogbookParticipantController::class, 'store']);
+        Route::post('/participants/bulk', [LogbookParticipantController::class, 'bulkStore']);
+        Route::get('/participants/{id}', [LogbookParticipantController::class, 'show']);
+        Route::put('/participants/{id}', [LogbookParticipantController::class, 'update']);
+        Route::patch('/participants/{id}/grade', [LogbookParticipantController::class, 'updateGrade']);
+        Route::patch('/participants/grades/bulk', [LogbookParticipantController::class, 'bulkUpdateGrades']);
+        Route::delete('/participants/{id}', [LogbookParticipantController::class, 'destroy']);
+    });
+    
+    // User Owner - Full CRUD access to participants
+    Route::middleware('logbook.access:Owner')->group(function () {
+        Route::get('/logbook/participants', [LogbookParticipantController::class, 'index']);
+        Route::get('/logbook/participants/stats', [LogbookParticipantController::class, 'getStats']);
+        Route::get('/logbook/participants/list', [LogbookParticipantController::class, 'getParticipantsList']);
+        Route::post('/logbook/participants', [LogbookParticipantController::class, 'store']);
+        Route::post('/logbook/participants/bulk', [LogbookParticipantController::class, 'bulkStore']);
+        Route::get('/logbook/participants/{id}', [LogbookParticipantController::class, 'show']);
+        Route::put('/logbook/participants/{id}', [LogbookParticipantController::class, 'update']);
+        Route::delete('/logbook/participants/{id}', [LogbookParticipantController::class, 'destroy']);
+    });
+    
+    // User Supervisor - Can view and give grades only
+    Route::middleware('logbook.access:Supervisor')->group(function () {
+        Route::get('/logbook/participants/view', [LogbookParticipantController::class, 'index']);
+        Route::get('/logbook/participants/view/stats', [LogbookParticipantController::class, 'getStats']);
+        Route::get('/logbook/participants/view/list', [LogbookParticipantController::class, 'getParticipantsList']);
+        Route::get('/logbook/participants/view/{id}', [LogbookParticipantController::class, 'show']);
+        Route::patch('/logbook/participants/{id}/grade', [LogbookParticipantController::class, 'updateGrade']);
+        Route::patch('/logbook/participants/grades/bulk', [LogbookParticipantController::class, 'bulkUpdateGrades']);
+    });
+    
+    // ===============================================
+    // Required Data Participants routes
+    // ===============================================
+    // Admin, Institution Admin - Full access with permission check
+    Route::middleware('permission:required-data-participants.manage')->group(function () {
+        Route::get('/required-data-participants', [RequiredDataParticipantController::class, 'index']);
+        Route::get('/required-data-participants/institution/{institutionId}', [RequiredDataParticipantController::class, 'getByInstitution']);
+        Route::get('/required-data-participants/{id}', [RequiredDataParticipantController::class, 'show']);
+        Route::post('/required-data-participants', [RequiredDataParticipantController::class, 'store']);
+        Route::put('/required-data-participants/{id}', [RequiredDataParticipantController::class, 'update']);
+        Route::patch('/required-data-participants/{id}/toggle', [RequiredDataParticipantController::class, 'toggleActive']);
+        Route::delete('/required-data-participants/{id}', [RequiredDataParticipantController::class, 'destroy']);
     });
     
     // ===============================================
