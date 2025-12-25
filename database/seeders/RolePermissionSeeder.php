@@ -40,6 +40,7 @@ class RolePermissionSeeder extends Seeder
             'users.update.institution',
             'users.update.own',
             'users.export',
+            'users.search',
             
             // Institution management
             'institutions.view.own',

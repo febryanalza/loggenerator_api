@@ -128,6 +128,20 @@ class LogbookParticipantController extends Controller
 
     /**
      * Create a new participant.
+     * 
+     * Expected data format (based on institution's required_data_participants):
+     * {
+     *   "template_id": "uuid",
+     *   "data": {
+     *     "Nama Lengkap": "John Doe",
+     *     "NIM": "12345678",
+     *     "Email": "john@example.com"
+     *   },
+     *   "grade": 85
+     * }
+     * 
+     * The keys in "data" object should match the "data_name" from required_data_participants table
+     * for the institution. The number of fields depends on how many required data the institution has configured.
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
@@ -136,8 +150,7 @@ class LogbookParticipantController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'template_id' => 'required|uuid|exists:logbook_template,id',
-            'data' => 'required|array',
-            'data.name' => 'required|string|max:255',
+            'data' => 'required|array|min:1',
             'grade' => 'nullable|integer|min:1|max:100',
         ]);
 
@@ -150,17 +163,22 @@ class LogbookParticipantController extends Controller
         }
 
         try {
+            $participantData = $request->input('data');
+            
             $participant = LogbookParticipant::create([
-                'template_id' => $request->template_id,
-                'data' => $request->data,
-                'grade' => $request->grade,
+                'template_id' => $request->input('template_id'),
+                'data' => $participantData,
+                'grade' => $request->input('grade'),
             ]);
 
+            // Get first value from data for audit log description
+            $firstValue = is_array($participantData) ? reset($participantData) : 'Unknown';
+            
             // Create audit log
             AuditLog::create([
                 'user_id' => Auth::id(),
                 'action' => 'CREATE_PARTICIPANT',
-                'description' => 'Created participant: ' . ($request->data['name'] ?? 'Unknown'),
+                'description' => 'Created participant: ' . $firstValue,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent()
             ]);
@@ -191,8 +209,7 @@ class LogbookParticipantController extends Controller
     public function update(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'data' => 'sometimes|required|array',
-            'data.name' => 'sometimes|required|string|max:255',
+            'data' => 'sometimes|required|array|min:1',
             'grade' => 'nullable|integer|min:1|max:100',
         ]);
 
@@ -217,13 +234,24 @@ class LogbookParticipantController extends Controller
             $oldData = $participant->data;
             $oldGrade = $participant->grade;
 
-            $participant->update($request->only(['data', 'grade']));
+            // Update only fields that are present in request
+            if ($request->has('data')) {
+                $participant->data = $request->input('data');
+            }
+            if ($request->has('grade')) {
+                $participant->grade = $request->input('grade');
+            }
+            $participant->save();
+
+            // Get first value from data for audit log description
+            $participantData = $participant->data;
+            $firstValue = is_array($participantData) ? reset($participantData) : 'Unknown';
 
             // Create audit log
             AuditLog::create([
                 'user_id' => Auth::id(),
                 'action' => 'UPDATE_PARTICIPANT',
-                'description' => 'Updated participant: ' . ($participant->data['name'] ?? 'Unknown'),
+                'description' => 'Updated participant: ' . $firstValue,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent()
             ]);
@@ -262,7 +290,9 @@ class LogbookParticipantController extends Controller
                 ], 404);
             }
 
-            $participantName = $participant->data['name'] ?? 'Unknown';
+            // Get first value from data for audit log description
+            $participantData = $participant->data;
+            $participantName = is_array($participantData) ? reset($participantData) : 'Unknown';
             $participant->delete();
 
             // Create audit log
@@ -347,8 +377,7 @@ class LogbookParticipantController extends Controller
         $validator = Validator::make($request->all(), [
             'template_id' => 'required|uuid|exists:logbook_template,id',
             'participants' => 'required|array|min:1',
-            'participants.*.data' => 'required|array',
-            'participants.*.data.name' => 'required|string|max:255',
+            'participants.*.data' => 'required|array|min:1',
             'participants.*.grade' => 'nullable|integer|min:1|max:100',
         ]);
 
@@ -362,9 +391,12 @@ class LogbookParticipantController extends Controller
 
         try {
             $created = [];
-            foreach ($request->participants as $participantData) {
+            $templateId = $request->input('template_id');
+            $participants = $request->input('participants');
+            
+            foreach ($participants as $participantData) {
                 $participant = LogbookParticipant::create([
-                    'template_id' => $request->template_id,
+                    'template_id' => $templateId,
                     'data' => $participantData['data'],
                     'grade' => $participantData['grade'] ?? null,
                 ]);
@@ -429,14 +461,15 @@ class LogbookParticipantController extends Controller
             }
 
             $oldGrade = $participant->grade;
-            $participant->grade = $request->grade;
+            $newGrade = $request->input('grade');
+            $participant->grade = $newGrade;
             $participant->save();
 
             // Create audit log
             AuditLog::create([
                 'user_id' => Auth::id(),
                 'action' => 'UPDATE_PARTICIPANT_GRADE',
-                'description' => 'Updated grade for participant: ' . ($participant->data['name'] ?? 'Unknown') . ' from ' . ($oldGrade ?? 'none') . ' to ' . $request->grade,
+                'description' => "Updated participant grade from {$oldGrade} to {$newGrade}",
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent()
             ]);
@@ -481,7 +514,9 @@ class LogbookParticipantController extends Controller
 
         try {
             $updated = [];
-            foreach ($request->grades as $gradeData) {
+            $grades = $request->input('grades');
+            
+            foreach ($grades as $gradeData) {
                 $participant = LogbookParticipant::find($gradeData['participant_id']);
                 if ($participant) {
                     $participant->grade = $gradeData['grade'];
@@ -547,10 +582,13 @@ class LogbookParticipantController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->get()
                 ->map(function ($participant) {
+                    $participantData = $participant->data;
+                    $name = is_array($participantData) ? reset($participantData) : 'Unknown';
+                    
                     return [
                         'id' => $participant->id,
-                        'name' => $participant->data['name'] ?? 'Unknown',
-                        'data' => $participant->data,
+                        'name' => $name,
+                        'data' => $participantData,
                         'grade' => $participant->grade,
                         'has_grade' => $participant->grade !== null,
                         'passed' => $participant->hasPassed(),

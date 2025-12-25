@@ -248,24 +248,6 @@
     </div>
 </div>
 
-<!-- View Logbook Detail Modal -->
-<div id="lb-view-modal" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto transform transition-all">
-        <div class="p-6 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
-            <h3 class="text-xl font-bold text-gray-800">
-                <i class="fas fa-book text-green-600 mr-2"></i>
-                Detail Logbook
-            </h3>
-            <button onclick="LogbooksManager.closeViewModal()" class="text-gray-500 hover:text-gray-700 text-2xl">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="p-6" id="lb-view-content">
-            <!-- Content will be loaded dynamically -->
-        </div>
-    </div>
-</div>
-
 <!-- Delete Confirmation Modal -->
 <div id="lb-delete-modal" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 hidden">
     <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
@@ -973,139 +955,9 @@ const LogbooksManager = {
         }
     },
 
-    async viewLogbook(id) {
-        try {
-            const response = await fetch(`/api/templates/${id}`, {
-                headers: {
-                    'Authorization': `Bearer ${this.getToken()}`,
-                    'Accept': 'application/json'
-                }
-            });
-
-            if (!response.ok) throw new Error('Failed to fetch logbook details');
-
-            const result = await response.json();
-            const logbook = result.data;
-
-            // Fetch user access for this logbook
-            let userAccess = [];
-            try {
-                const accessResponse = await fetch(`/api/user-access/template/${id}`, {
-                    headers: {
-                        'Authorization': `Bearer ${this.getToken()}`,
-                        'Accept': 'application/json'
-                    }
-                });
-                if (accessResponse.ok) {
-                    const accessResult = await accessResponse.json();
-                    userAccess = accessResult.data || [];
-                }
-            } catch (e) {
-                console.error('Error fetching user access:', e);
-            }
-
-            const content = document.getElementById('lb-view-content');
-            content.innerHTML = `
-                <div class="space-y-6">
-                    <!-- Basic Info -->
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-sm font-medium text-gray-500">Nama Logbook</label>
-                            <p class="text-lg font-semibold text-gray-800">${this.escapeHtml(logbook.name)}</p>
-                        </div>
-                        <div>
-                            <label class="text-sm font-medium text-gray-500">Total Entri</label>
-                            <p class="text-lg font-semibold text-gray-800">${logbook.logbook_data_count || 0}</p>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <label class="text-sm font-medium text-gray-500">Deskripsi</label>
-                        <p class="text-gray-800">${logbook.description ? this.escapeHtml(logbook.description) : '<span class="text-gray-400 italic">Tidak ada deskripsi</span>'}</p>
-                    </div>
-                    
-                    <!-- Fields -->
-                    <div>
-                        <label class="text-sm font-medium text-gray-500 block mb-2">Fields (${logbook.fields?.length || 0})</label>
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            ${logbook.fields && logbook.fields.length > 0 ? `
-                                <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-                                    ${logbook.fields.map(field => `
-                                        <div class="px-3 py-2 bg-white rounded border flex justify-between items-center">
-                                            <span class="font-medium text-sm">${this.escapeHtml(field.name)}</span>
-                                            <span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">${field.data_type}</span>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            ` : '<p class="text-gray-400 text-center">Tidak ada field</p>'}
-                        </div>
-                    </div>
-                    
-                    <!-- User Access -->
-                    <div>
-                        <label class="text-sm font-medium text-gray-500 block mb-2">User Access (${userAccess.length})</label>
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            ${userAccess.length > 0 ? `
-                                <div class="space-y-2">
-                                    ${userAccess.map(access => `
-                                        <div class="px-3 py-2 bg-white rounded border flex justify-between items-center">
-                                            <div class="flex items-center gap-2">
-                                                <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                                                    <i class="fas fa-user text-green-600 text-sm"></i>
-                                                </div>
-                                                <div>
-                                                    <div class="font-medium text-sm">${this.escapeHtml(access.user?.name || 'Unknown')}</div>
-                                                    <div class="text-xs text-gray-500">${this.escapeHtml(access.user?.email || '')}</div>
-                                                </div>
-                                            </div>
-                                            <span class="px-2 py-1 ${this.getRoleBadgeClass(access.logbook_role?.name)} text-xs rounded-full">
-                                                ${access.logbook_role?.name || 'Unknown'}
-                                            </span>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            ` : '<p class="text-gray-400 text-center">Tidak ada user access</p>'}
-                        </div>
-                    </div>
-                    
-                    <!-- Timestamps -->
-                    <div class="grid grid-cols-2 gap-4 text-sm border-t pt-4">
-                        <div>
-                            <label class="text-gray-500">Dibuat pada</label>
-                            <p class="text-gray-800">${this.formatDate(logbook.created_at)}</p>
-                            <p class="text-xs text-gray-500">oleh ${logbook.creator?.name || 'Unknown'}</p>
-                        </div>
-                        <div>
-                            <label class="text-gray-500">Terakhir diupdate</label>
-                            <p class="text-gray-800">${this.formatDate(logbook.updated_at)}</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            const modal = document.getElementById('lb-view-modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        } catch (error) {
-            console.error('Error viewing logbook:', error);
-            showAlert('error', 'Error', 'Gagal memuat detail logbook');
-        }
-    },
-
-    getRoleBadgeClass(roleName) {
-        switch (roleName) {
-            case 'Owner': return 'bg-purple-100 text-purple-800';
-            case 'Supervisor': return 'bg-blue-100 text-blue-800';
-            case 'Editor': return 'bg-green-100 text-green-800';
-            case 'Viewer': return 'bg-gray-100 text-gray-800';
-            default: return 'bg-gray-100 text-gray-800';
-        }
-    },
-
-    closeViewModal() {
-        const modal = document.getElementById('lb-view-modal');
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+    viewLogbook(id) {
+        // Redirect to detail page
+        window.location.href = `/institution-admin/logbooks/detail?id=${id}`;
     },
 
     showDeleteModal(id, name) {

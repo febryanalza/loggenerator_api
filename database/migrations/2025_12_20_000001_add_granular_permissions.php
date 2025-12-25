@@ -230,6 +230,7 @@ return new class extends Migration
                 'reports.view.basic',
                 'audit.view.own',
                 'notifications.view',
+                'participants.view', 'participants.create', 'participants.update', 'participants.delete', 'participants.manage',
                 'required-data-participants.view', 'required-data-participants.create', 'required-data-participants.update',
                 'required-data-participants.delete', 'required-data-participants.manage',
             ])->pluck('name');

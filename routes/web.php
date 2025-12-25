@@ -67,6 +67,7 @@ Route::prefix('institution-admin')->group(function () {
     
     // Logbook management
     Route::get('/logbooks', function() { return view('institution_admin.logbooks'); })->name('institution-admin.logbooks');
+    Route::get('/logbooks/detail', function() { return view('institution_admin.logbook_detail'); })->name('institution-admin.logbooks.detail');
   
     // Member management
     Route::get('/members', function() { return view('institution_admin.members'); })->name('institution-admin.members');
