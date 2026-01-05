@@ -322,6 +322,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/required-data-participants/{id}', [RequiredDataParticipantController::class, 'destroy']);
     });
     
+    // Owner access - Get required data by template ID (for add participant page)
+    Route::get('/required-data-participants/template/{templateId}', [RequiredDataParticipantController::class, 'getByTemplate'])
+        ->middleware('logbook.access:Owner');
+    
     // ===============================================
     // Logbook Export routes
     // ===============================================

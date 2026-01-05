@@ -118,6 +118,83 @@ class RequiredDataParticipantController extends Controller
     }
 
     /**
+     * Get required data participants by template ID.
+     * This method fetches the template, gets its institution, and returns required data.
+     *
+     * @param  string  $templateId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getByTemplate($templateId)
+    {
+        try {
+            Log::info('========== GET REQUIRED DATA BY TEMPLATE ==========');
+            Log::info('Received Template ID: ' . $templateId);
+            Log::info('Template ID Type: ' . gettype($templateId));
+            Log::info('Template ID Length: ' . strlen($templateId));
+            
+            // Get template with institution
+            $template = \App\Models\LogbookTemplate::with('institution:id,name')->find($templateId);
+            
+            Log::info('Template Found: ' . ($template ? 'YES' : 'NO'));
+            if ($template) {
+                Log::info('Template Name: ' . $template->name);
+                Log::info('Template ID in DB: ' . $template->id);
+                Log::info('Institution ID: ' . ($template->institution_id ?? 'NULL'));
+            }
+            
+            if (!$template) {
+                Log::warning('Template not found with ID: ' . $templateId);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Template not found'
+                ], 404);
+            }
+
+            if (!$template->institution_id) {
+                Log::warning('Template has no institution: ' . $template->name);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Template has no associated institution'
+                ], 400);
+            }
+
+            $requiredData = RequiredDataParticipant::forInstitution($template->institution_id)
+                ->active()
+                ->latest()
+                ->get();
+
+            Log::info('Required Data Count: ' . $requiredData->count());
+            Log::info('===================================================');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Required data participants retrieved successfully',
+                'data' => [
+                    'template' => [
+                        'id' => $template->id,
+                        'name' => $template->name
+                    ],
+                    'institution' => $template->institution ? [
+                        'id' => $template->institution->id,
+                        'name' => $template->institution->name
+                    ] : null,
+                    'required_data' => $requiredData,
+                    'total' => $requiredData->count()
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve required data by template: ' . $e->getMessage());
+            Log::error('Stack Trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve required data by template',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
+    /**
      * Get a single required data participant by ID.
      *
      * @param  string  $id
