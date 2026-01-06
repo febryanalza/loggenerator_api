@@ -286,6 +286,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/participants/{id}', [LogbookParticipantController::class, 'destroy']);
     });
     
+    // User Supervisor - Can view and give grades only (MUST be defined BEFORE Owner routes to avoid route conflicts)
+    Route::middleware('logbook.access:Supervisor,Owner')->group(function () {
+        Route::get('/logbook/participants/view', [LogbookParticipantController::class, 'index']);
+        Route::get('/logbook/participants/view/stats', [LogbookParticipantController::class, 'getStats']);
+        Route::get('/logbook/participants/view/list', [LogbookParticipantController::class, 'getParticipantsList']);
+        Route::get('/logbook/participants/view/{id}', [LogbookParticipantController::class, 'show']);
+        Route::patch('/logbook/participants/{id}/grade', [LogbookParticipantController::class, 'updateGrade']);
+        Route::patch('/logbook/participants/grades/bulk', [LogbookParticipantController::class, 'bulkUpdateGrades']);
+    });
+    
     // User Owner - Full CRUD access to participants
     Route::middleware('logbook.access:Owner')->group(function () {
         Route::get('/logbook/participants', [LogbookParticipantController::class, 'index']);
@@ -296,16 +306,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/logbook/participants/{id}', [LogbookParticipantController::class, 'show']);
         Route::put('/logbook/participants/{id}', [LogbookParticipantController::class, 'update']);
         Route::delete('/logbook/participants/{id}', [LogbookParticipantController::class, 'destroy']);
-    });
-    
-    // User Supervisor - Can view and give grades only
-    Route::middleware('logbook.access:Supervisor')->group(function () {
-        Route::get('/logbook/participants/view', [LogbookParticipantController::class, 'index']);
-        Route::get('/logbook/participants/view/stats', [LogbookParticipantController::class, 'getStats']);
-        Route::get('/logbook/participants/view/list', [LogbookParticipantController::class, 'getParticipantsList']);
-        Route::get('/logbook/participants/view/{id}', [LogbookParticipantController::class, 'show']);
-        Route::patch('/logbook/participants/{id}/grade', [LogbookParticipantController::class, 'updateGrade']);
-        Route::patch('/logbook/participants/grades/bulk', [LogbookParticipantController::class, 'bulkUpdateGrades']);
     });
     
     // ===============================================
